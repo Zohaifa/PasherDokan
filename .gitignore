@@ -1,0 +1,26 @@
+# Environment variables
+.env
+pasherdokanApp/.env
+pasherdokan-backend/.env
+
+# Node modules
+node_modules/
+pasherdokanApp/node_modules/
+pasherdokan-backend/node_modules/
+
+# React Native (Android/iOS build files)
+pasherdokanApp/android/.gradle/
+pasherdokanApp/android/.idea/
+pasherdokanApp/android/app/build/
+pasherdokanApp/ios/Pods/
+pasherdokanApp/ios/build/
+pasherdokanApp/*.keystore
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS
+.DS_Store
