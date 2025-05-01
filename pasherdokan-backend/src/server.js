@@ -13,9 +13,6 @@ app.use('/shops', require('./routes/shops'));
 app.use('/products', require('./routes/products'));
 app.use('/orders', require('./routes/orders'));
 
-// Debug: Log the MONGO_URI to verify it's loaded
-console.log('MONGO_URI:', process.env.MONGO_URI);
-
 // Connect to MongoDB Atlas with enhanced debugging
 const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
