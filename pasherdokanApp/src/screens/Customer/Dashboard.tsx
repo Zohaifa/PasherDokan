@@ -79,7 +79,6 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={styles.headerTitle}>PasherDokan</Text>
       </View>
-
       <Text style={styles.title}>Nearby Shops</Text>
       {location ? (
         <View style={styles.locationContainer}>

@@ -1,38 +1,56 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
+import { AuthContext } from '../utils/auth';
 import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import ShopkeeperDashboard from '../screens/Shopkeeper/Dashboard';
 import AddShop from '../screens/Shopkeeper/AddShop';
 import AddProduct from '../screens/Shopkeeper/AddProduct';
 import CustomerDashboard from '../screens/Customer/Dashboard';
 import ShopDetail from '../screens/Customer/ShopDetail';
 import OrderPlacement from '../screens/Customer/OrderPlacement';
+import Cart from '../screens/Cart';
+import OrderHistory from '../screens/OrderHistory';
 
-// Define the parameter list for the navigation stack
-type RootStackParamList = {
-  Login: undefined;
-  ShopkeeperDashboard: { shopId?: string };
-  AddShop: undefined;
-  AddProduct: { shopId: string };
-  CustomerDashboard: undefined;
-  ShopDetail: { shop: { _id: string; name: string; shopType: string; location: { latitude: number; longitude: number } } };
-  OrderPlacement: { shop: { _id: string; name: string }; product: { _id: string; name: string; price: number } };
-};
+const Stack = createStackNavigator();
 
-const Stack = createStackNavigator<RootStackParamList>();
+const AppNavigator: React.FC = () => {
+  const auth = useContext(AuthContext);
+  const isAuthenticated = auth?.isAuthenticated ?? null;
+  const userRole = auth?.userRole;
 
-const AppNavigator = () => {
+  if (isAuthenticated === null) {
+    return null; // Loading state handled in App.tsx
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="ShopkeeperDashboard" component={ShopkeeperDashboard} />
-        <Stack.Screen name="AddShop" component={AddShop} />
-        <Stack.Screen name="AddProduct" component={AddProduct} />
-        <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
-        <Stack.Screen name="ShopDetail" component={ShopDetail} />
-        <Stack.Screen name="OrderPlacement" component={OrderPlacement} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {isAuthenticated === false ? (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen as React.ComponentType} />
+            <Stack.Screen name="Register" component={RegisterScreen as React.ComponentType} />
+          </>
+        ) : (
+          <>
+            {userRole === 'shopkeeper' ? (
+              <>
+                <Stack.Screen name="ShopkeeperDashboard" component={ShopkeeperDashboard as React.ComponentType} />
+                <Stack.Screen name="AddShop" component={AddShop as React.ComponentType} />
+                <Stack.Screen name="AddProduct" component={AddProduct as React.ComponentType} />
+              </>
+            ) : (
+              <>
+                <Stack.Screen name="CustomerDashboard" component={CustomerDashboard as React.ComponentType} />
+                <Stack.Screen name="ShopDetail" component={ShopDetail as React.ComponentType} />
+                <Stack.Screen name="OrderPlacement" component={OrderPlacement as React.ComponentType} />
+                <Stack.Screen name="Cart" component={Cart as React.ComponentType} />
+                <Stack.Screen name="OrderHistory" component={OrderHistory as React.ComponentType} />
+              </>
+            )}
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

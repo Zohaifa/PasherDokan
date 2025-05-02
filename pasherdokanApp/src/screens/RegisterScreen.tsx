@@ -11,43 +11,54 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { useAuth } from '../utils/auth';
 import api from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
-  Login: undefined;
   Register: undefined;
+  Login: undefined;
 };
 
-type Props = StackScreenProps<RootStackParamList, 'Login'>;
+type Props = StackScreenProps<RootStackParamList, 'Register'>;
 
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const { setIsAuthenticated, setUserRole } = useAuth();
+const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<'shopkeeper' | 'customer'>('customer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter both email and password');
+  const validateForm = () => {
+    if (!email || !password || !confirmPassword) {
+      setError('All fields are required');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
       setError('');
-      const response = await api.post('/auth/login', { email, password });
-      await AsyncStorage.setItem('userToken', response.data.token);
-      const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
-      await AsyncStorage.setItem('userRole', tokenPayload.role);
-      setIsAuthenticated(true);
-      setUserRole(tokenPayload.role);
+      await api.post('/api/auth/register', { email, password, role });
+      Alert.alert(
+        'Registration Successful',
+        'Your account has been created successfully. Please login to continue.',
+        [{ text: 'Login', onPress: () => navigation.navigate('Login') }]
+      );
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -64,8 +75,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.logoContainer}>
               <Text style={styles.logoText}>PD</Text>
             </View>
-            <Text style={styles.title}>PasherDokan</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join PasherDokan today</Text>
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -89,7 +100,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your password"
+                placeholder="Create a password"
                 placeholderTextColor="#a0a0a0"
                 value={password}
                 onChangeText={(text) => {
@@ -100,22 +111,75 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               />
             </View>
 
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm your password"
+                placeholderTextColor="#a0a0a0"
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  setError('');
+                }}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.roleContainer}>
+              <Text style={styles.label}>I want to register as:</Text>
+              <View style={styles.roleButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    role === 'customer' && styles.activeRoleButton,
+                  ]}
+                  onPress={() => setRole('customer')}
+                >
+                  <Text
+                    style={[
+                      styles.roleButtonText,
+                      role === 'customer' && styles.activeRoleButtonText,
+                    ]}
+                  >
+                    Customer
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    role === 'shopkeeper' && styles.activeRoleButton,
+                  ]}
+                  onPress={() => setRole('shopkeeper')}
+                >
+                  <Text
+                    style={[
+                      styles.roleButtonText,
+                      role === 'shopkeeper' && styles.activeRoleButtonText,
+                    ]}
+                  >
+                    Shopkeeper
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
+              style={styles.registerButton}
+              onPress={handleRegister}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.buttonText}>Login</Text>
+                <Text style={styles.buttonText}>Create Account</Text>
               )}
             </TouchableOpacity>
 
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-                <Text style={styles.registerLink}>Sign Up</Text>
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -138,11 +202,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 20,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#4a69bd',
     justifyContent: 'center',
     alignItems: 'center',
@@ -154,12 +220,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   logoText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#2c3e50',
     marginBottom: 8,
@@ -167,11 +233,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#7f8c8d',
-    marginBottom: 30,
+    marginBottom: 25,
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   label: {
     fontSize: 14,
@@ -190,7 +256,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2c3e50',
   },
-  loginButton: {
+  roleContainer: {
+    width: '100%',
+    marginBottom: 25,
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  roleButton: {
+    flex: 1,
+    height: 45,
+    backgroundColor: '#efefef',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  activeRoleButton: {
+    backgroundColor: '#4a69bd',
+  },
+  roleButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#7f8c8d',
+  },
+  activeRoleButtonText: {
+    color: 'white',
+  },
+  registerButton: {
     width: '100%',
     height: 50,
     backgroundColor: '#4a69bd',
@@ -209,15 +303,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  registerContainer: {
+  loginContainer: {
     flexDirection: 'row',
-    marginTop: 25,
+    marginTop: 20,
   },
-  registerText: {
+  loginText: {
     fontSize: 14,
     color: '#7f8c8d',
   },
-  registerLink: {
+  loginLink: {
     fontSize: 14,
     fontWeight: '600',
     color: '#4a69bd',
@@ -230,4 +324,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default RegisterScreen;
