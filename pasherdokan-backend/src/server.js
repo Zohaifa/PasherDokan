@@ -2,27 +2,45 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
 // Middleware
 app.use(express.json());
 
-// Routes
-app.use('/shops', require('./routes/shops'));
-app.use('/products', require('./routes/products'));
-app.use('/orders', require('./routes/orders'));
+// JWT Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Expecting "Bearer TOKEN"
 
-// Connect to MongoDB Atlas with enhanced debugging
-const MONGO_URI = process.env.MONGO_URI;
-if (!MONGO_URI) {
-  throw new Error('MONGO_URI is not defined in the .env file');
+  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid token.' });
+    req.user = user;
+    next();
+  });
+};
+
+// Routes
+app.use('/shops', authenticateToken, require('./routes/shops'));
+app.use('/products', authenticateToken, require('./routes/products'));
+app.use('/orders', authenticateToken, require('./routes/orders'));
+
+// Debug: Log the MONGODB_URI to verify it's loaded
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+
+// Connect to MongoDB Atlas
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://jalaldevdesign:pasherdokan@cluster0.rcicfel.mongodb.net/pasherdokan?retryWrites=true&w=majority&appName=Cluster0';
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is not defined in the .env file');
 }
 mongoose
-  .connect(MONGO_URI, {
+  .connect(MONGODB_URI, {
     tls: true,
-    tlsInsecure: false, // Ensures strict TLS validation
-    serverSelectionTimeoutMS: 5000, // Timeout for server selection
+    tlsInsecure: false,
+    serverSelectionTimeoutMS: 5000,
   })
   .then(() => console.log('MongoDB Atlas connected'))
   .catch((err) => console.error('MongoDB Atlas connection error:', err));
