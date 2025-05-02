@@ -24,6 +24,7 @@ type RootStackParamList = {
 type Props = StackScreenProps<RootStackParamList, 'Register'>;
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+  // Removed unused import from useAuth
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,12 +54,15 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       setError('');
       await api.post('/api/auth/register', { email, password, role });
       Alert.alert(
-        'Registration Successful',
-        'Your account has been created successfully. Please login to continue.',
+        'Success',
+        'Registration successful! Please log in.',
         [{ text: 'Login', onPress: () => navigation.navigate('Login') }]
       );
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.log('Registration error:', err.message);
+      console.log('Error response:', err.response);
+      console.log('Error request:', err.request);
+      setError(err.response?.data?.message || `Registration failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

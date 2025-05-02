@@ -5,7 +5,7 @@ const connectDB = async (): Promise<void> => {
     await mongoose.connect(process.env.MONGODB_URI!, {
       tls: true,
       tlsInsecure: false,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
     });
     console.log('MongoDB Atlas connected');
   } catch (error) {

@@ -40,13 +40,23 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setLoading(true);
       setError('');
-      const response = await api.post('/auth/login', { email, password });
+      // Debug logging - login attempt
+      console.log('Login attempt with:', { email, password });
+      // Updated API endpoint to include /api prefix
+      const response = await api.post('/api/auth/login', { email, password });
+      // Debug logging - successful response
+      console.log('Login response:', response.data);
       await AsyncStorage.setItem('userToken', response.data.token);
       const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
       await AsyncStorage.setItem('userRole', tokenPayload.role);
       setIsAuthenticated(true);
       setUserRole(tokenPayload.role);
     } catch (err: any) {
+      // Debug logging - error details
+      console.error('Login error:', err.message);
+      console.log('Error response:', err.response);
+      console.log('Error request:', err.request);
+      console.log('Error config:', err.config);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
