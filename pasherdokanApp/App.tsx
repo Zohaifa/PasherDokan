@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text, ActivityIndicator, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthContext } from './src/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,21 +34,17 @@ const App: React.FC = () => {
 
   if (isAuthenticated === null) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+      <View style={styles.container}>
         <ActivityIndicator size="large" color="#0000ff" />
         <Text>Loading...</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
+    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
         <AppNavigator />
-      </AuthContext.Provider>
-    </SafeAreaView>
+    </AuthContext.Provider>
   );
 };
 
@@ -57,9 +53,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  safeArea: {
-    flex: 5,
   },
 });
 
