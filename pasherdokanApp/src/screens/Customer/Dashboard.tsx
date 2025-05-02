@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import api from '../../services/api';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,6 +25,7 @@ type Props = {
 const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     Geolocation.getCurrentPosition(
@@ -34,6 +35,7 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
         fetchNearbyShops(latitude, longitude);
       },
       (error) => {
+        setLoading(false);
         Alert.alert('Error', 'Unable to fetch location. Please enable location services.');
         console.log(error);
       },
@@ -43,71 +45,205 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
 
   const fetchNearbyShops = async (lat: number, lng: number) => {
     try {
+      setLoading(true);
       const response = await api.get(`/shops/nearby?lat=${lat}&lng=${lng}`);
       setShops(response.data);
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch nearby shops.');
       console.error('Error fetching shops:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const renderShop = ({ item }: { item: Shop }) => (
     <View style={styles.shopCard}>
-      <Text style={styles.shopName}>{item.name}</Text>
-      <Text>Type: {item.shopType}</Text>
-      <Button
-        title="View Shop"
+      <View style={styles.shopInfo}>
+        <Text style={styles.shopName}>{item.name}</Text>
+        <Text style={styles.shopType}>Type: {item.shopType}</Text>
+      </View>
+      <TouchableOpacity
+        style={styles.viewButton}
         onPress={() => navigation.navigate('ShopDetail', { shop: item })}
-      />
+      >
+        <Text style={styles.viewButtonText}>View Shop</Text>
+      </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>PD</Text>
+        </View>
+        <Text style={styles.headerTitle}>PasherDokan</Text>
+      </View>
+
       <Text style={styles.title}>Nearby Shops</Text>
       {location ? (
-        <Text style={styles.locationText}>
-          Your Location: {location.latitude}, {location.longitude}
-        </Text>
+        <View style={styles.locationContainer}>
+          <Text style={styles.locationLabel}>Your Location:</Text>
+          <Text style={styles.locationText}>
+            {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+          </Text>
+        </View>
       ) : (
         <Text style={styles.locationText}>Fetching location...</Text>
       )}
-      <FlatList
-        data={shops}
-        keyExtractor={(item) => item._id}
-        renderItem={renderShop}
-        ListEmptyComponent={<Text>No shops found nearby.</Text>}
-      />
-    </View>
+
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4a69bd" />
+          <Text style={styles.loadingText}>Finding shops near you...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={shops}
+          keyExtractor={(item) => item._id}
+          renderItem={renderShop}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No shops found nearby.</Text>
+              <Text style={styles.emptySubtext}>Try expanding your search radius or check back later.</Text>
+            </View>
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  logoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4a69bd',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  logoText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 10,
     textAlign: 'center',
+    color: '#2c3e50',
+  },
+  locationContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  locationLabel: {
+    fontSize: 14,
+    color: '#7f8c8d',
   },
   locationText: {
-    marginBottom: 20,
     fontSize: 16,
-    color: '#666',
+    color: '#34495e',
+    fontWeight: '500',
+  },
+  listContainer: {
+    padding: 15,
   },
   shopCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
     padding: 15,
-    borderBottomWidth: 1,
-    borderColor: '#ccc',
-    marginBottom: 10,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  shopInfo: {
+    flex: 1,
   },
   shopName: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  shopType: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  viewButton: {
+    backgroundColor: '#4a69bd',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 6,
+  },
+  viewButtonText: {
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7f8c8d',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#34495e',
+    marginBottom: 5,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
   },
 });
 
