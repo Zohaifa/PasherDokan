@@ -4,13 +4,17 @@ import Button from './Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackNavigationProp } from '@react-navigation/stack';
 
+// Update RootStackParamList to include all screens in your app
 type RootStackParamList = {
   Login: undefined;
   Logout: undefined;
+  ShopkeeperDashboard: undefined;
+  // Add other screens as needed
 };
 
+// Update the props to accept navigation from any screen
 type LogoutButtonProps = {
-  navigation: StackNavigationProp<RootStackParamList, 'Logout'>;
+  navigation: StackNavigationProp<RootStackParamList>;
 };
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({ navigation }) => {
