@@ -1,45 +1,94 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import Button from './Button';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
+import { useAuth } from '../utils/auth';
 
-// Update RootStackParamList to include all screens in your app
-type RootStackParamList = {
-  Login: undefined;
-  Logout: undefined;
-  ShopkeeperDashboard: undefined;
-  // Add other screens as needed
-};
-
-// Update the props to accept navigation from any screen
 type LogoutButtonProps = {
-  navigation: StackNavigationProp<RootStackParamList>;
+  navigation: any;
 };
 
 const LogoutButton: React.FC<LogoutButtonProps> = ({ navigation }) => {
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove(['userToken', 'userRole']);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+  const auth = useAuth();
+  console.log('LogoutButton rendered, auth object:',
+    JSON.stringify({
+      hasLogout: typeof auth.logout === 'function',
+      isAuthenticated: auth.isAuthenticated,
+    })
+  );
+
+  const handleLogout = () => {
+    console.log('Logout button pressed');
+    // Simple direct test - try to navigate immediately to test button clicks
+    console.log('Navigation object available:', !!navigation);
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('Logout confirmed, proceeding...');
+              // Call the logout function from auth context
+              if (typeof auth.logout === 'function') {
+                await auth.logout();
+                console.log('Logout successful, navigating to Login');
+                // Reset navigation to Login screen
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Login' }],
+                  })
+                );
+              } else {
+                console.error('Logout function is not available in auth context');
+                Alert.alert('Error', 'Logout function not available');
+              }
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
+  // Let's make the button more visible and easier to tap
   return (
-    <View style={styles.container}>
-      <Button title="Logout" onPress={handleLogout} color="#FF3B30" />
-    </View>
+    <TouchableOpacity
+      style={styles.button}
+      onPress={() => {
+        console.log('TouchableOpacity pressed!');
+        handleLogout();
+      }}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.buttonText}>Logout</Text>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    paddingRight: 10,
+  button: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 4,
+    margin: 10,
+    minWidth: 80,
+    minHeight: 30,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

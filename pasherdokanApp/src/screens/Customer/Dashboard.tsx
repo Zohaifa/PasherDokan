@@ -3,6 +3,8 @@ import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView, TouchableOpacity
 import Geolocation from '@react-native-community/geolocation';
 import api from '../../services/api';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../../utils/auth';
+import LogoutButton from '../../components/LogoutButton';
 
 type Shop = {
   _id: string;
@@ -14,6 +16,7 @@ type Shop = {
 type RootStackParamList = {
   CustomerDashboard: undefined;
   ShopDetail: { shop: Shop };
+  Login: undefined;
 };
 
 type CustomerDashboardNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CustomerDashboard'>;
@@ -23,25 +26,28 @@ type Props = {
 };
 
 const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
+  const { isAuthenticated } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude });
-        fetchNearbyShops(latitude, longitude);
-      },
-      (error) => {
-        setLoading(false);
-        Alert.alert('Error', 'Unable to fetch location. Please enable location services.');
-        console.log(error);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-  }, []);
+    if (isAuthenticated) {
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation({ latitude, longitude });
+          fetchNearbyShops(latitude, longitude);
+        },
+        (error) => {
+          setLoading(false);
+          Alert.alert('Error', 'Unable to fetch location. Please enable location services.');
+          console.log(error);
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    }
+  }, [isAuthenticated]);
 
   const fetchNearbyShops = async (lat: number, lng: number) => {
     try {
@@ -71,6 +77,20 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.emptyText}>Please log in to view nearby shops</Text>
+        <TouchableOpacity
+          style={[styles.viewButton, styles.loginButton]}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.viewButtonText}>Go to Login</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -78,6 +98,9 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.logoText}>PD</Text>
         </View>
         <Text style={styles.headerTitle}>PasherDokan</Text>
+        <View style={styles.logoutButtonContainer}>
+          <LogoutButton navigation={navigation} />
+        </View>
       </View>
       <Text style={styles.title}>Nearby Shops</Text>
       {location ? (
@@ -145,6 +168,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#2c3e50',
+    flex: 1, // Allow title to take available space
+  },
+  logoutButtonContainer: {
+    marginLeft: 'auto', // Push the logout button to the right
   },
   title: {
     fontSize: 24,
@@ -217,6 +244,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
     fontSize: 14,
+  },
+  loginButton: {
+    marginTop: 20,
   },
   loadingContainer: {
     flex: 1,
