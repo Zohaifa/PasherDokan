@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import LogoutButton from '../../components/LogoutButton';
 
 type RootStackParamList = {
   ShopkeeperDashboard: { shopId?: string };
   AddShop: undefined;
   AddProduct: { shopId: string };
+  Login: undefined;
 };
 
 type ShopkeeperDashboardRouteProp = RouteProp<RootStackParamList, 'ShopkeeperDashboard'>;
@@ -36,6 +38,9 @@ const ShopkeeperDashboard: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.logoText}>PD</Text>
           </View>
           <Text style={styles.headerTitle}>Shopkeeper Dashboard</Text>
+          <View style={styles.logoutButtonContainer}>
+            <LogoutButton navigation={navigation} />
+          </View>
         </View>
 
         <View style={styles.statusCard}>
@@ -118,6 +123,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#2c3e50',
+    flex: 1,
+  },
+  logoutButtonContainer: {
+    marginLeft: 'auto',
   },
   statusCard: {
     backgroundColor: 'white',
