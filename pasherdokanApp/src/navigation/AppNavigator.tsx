@@ -66,7 +66,6 @@ const ShopkeeperTabs = () => {
     </Tab.Navigator>
   );
 };
-// Icon function for customer tabs
 const getCustomerTabIcon = (route: any, focused: boolean, color: string, size: number) => {
   let iconName = '';
   if (route.name === 'Shops') {
@@ -79,7 +78,6 @@ const getCustomerTabIcon = (route: any, focused: boolean, color: string, size: n
   return <Ionicons name={iconName} size={size} color={color} />;
 };
 
-// Bottom tab navigator for customer
 const CustomerTabs = () => {
   return (
     <Tab.Navigator
@@ -102,7 +100,7 @@ const AppNavigator: React.FC = () => {
   const userRole = auth?.userRole;
 
   if (isAuthenticated === null) {
-    return null; // Loading state handled in App.tsx
+    return null;
   }
 
   return (
