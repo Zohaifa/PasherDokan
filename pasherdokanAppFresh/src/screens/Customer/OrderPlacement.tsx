@@ -1,27 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../../services/api';
-import { RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-type RootStackParamList = {
-  OrderPlacement: { shop: { _id: string; name: string }; product: { _id: string; name: string; price: number } };
-  CustomerDashboard: undefined;
-};
-
-type OrderPlacementRouteProp = RouteProp<RootStackParamList, 'OrderPlacement'>;
-type OrderPlacementNavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrderPlacement'>;
-
-type Props = {
-  route: OrderPlacementRouteProp;
-  navigation: OrderPlacementNavigationProp;
-};
-
-const OrderPlacement: React.FC<Props> = ({ route, navigation }) => {
-  const { shop, product } = route.params;
+const OrderPlacement: React.FC = () => {
+  const { shop: shopParam, product: productParam } = useLocalSearchParams();
+  const router = useRouter();
+  const shop = shopParam ? JSON.parse(shopParam as string) : null;
+  const product = productParam ? JSON.parse(productParam as string) : null;
   const [quantity, setQuantity] = useState(1);
 
   const handlePlaceOrder = async () => {
+    if (!shop || !product) {
+      Alert.alert('Error', 'Missing shop or product information.');
+      return;
+    }
+
     try {
       await api.post('/orders', {
         shop: shop._id,
@@ -31,12 +25,16 @@ const OrderPlacement: React.FC<Props> = ({ route, navigation }) => {
         paymentMethod: 'cash_on_delivery',
       });
       Alert.alert('Success', 'Order placed successfully!');
-      navigation.navigate('CustomerDashboard');
+      router.push('/customer/dashboard');
     } catch (error) {
       Alert.alert('Error', 'Failed to place order. Please try again.');
       console.error('Place order error:', error);
     }
   };
+
+  if (!shop || !product) {
+    return <View><Text>Error: Shop or product data not found.</Text></View>;
+  }
 
   return (
     <View style={styles.container}>

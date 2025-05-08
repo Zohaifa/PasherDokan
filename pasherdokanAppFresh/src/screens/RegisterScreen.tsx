@@ -13,24 +13,17 @@ import {
   Keyboard,
   Alert,
 } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import api from '../services/api';
 
-type RootStackParamList = {
-  Register: undefined;
-  Login: undefined;
-};
-
-type Props = StackScreenProps<RootStackParamList, 'Register'>;
-
-const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  // Removed unused import from useAuth
+const RegisterScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'shopkeeper' | 'customer'>('customer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const validateForm = () => {
     if (!email || !password || !confirmPassword) {
@@ -56,7 +49,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert(
         'Success',
         'Registration successful! Please log in.',
-        [{ text: 'Login', onPress: () => navigation.navigate('Login') }]
+        [{ text: 'Login', onPress: () => router.push('/login') }]
       );
     } catch (err: any) {
       console.log('Registration error:', err.message);
@@ -182,7 +175,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <TouchableOpacity onPress={() => router.push('/login')}>
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>

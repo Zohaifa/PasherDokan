@@ -1,27 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../../services/api';
-import { RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-// Use the RootStackParamList defined in AppNavigator
-type RootStackParamList = {
-  AddProduct: { shopId: string };
-};
-
-type AddProductRouteProp = RouteProp<RootStackParamList, 'AddProduct'>;
-type AddProductNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddProduct'>;
-
-type Props = {
-  route: AddProductRouteProp;
-  navigation: AddProductNavigationProp;
-};
-
-const AddProduct: React.FC<Props> = ({ route, navigation }) => {
+const AddProduct: React.FC = () => {
   const [productName, setProductName] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
+  const router = useRouter();
+  const { shopId } = useLocalSearchParams();
 
   const handleAddProduct = async () => {
     if (!productName || !category || !price || !stock) {
@@ -35,10 +23,10 @@ const AddProduct: React.FC<Props> = ({ route, navigation }) => {
         category,
         price: parseFloat(price),
         stock: parseInt(stock, 10),
-        shop: route.params?.shopId,
+        shop: shopId,
       });
       Alert.alert('Success', 'Product added successfully!');
-      navigation.goBack();
+      router.back();
     } catch (error) {
       Alert.alert('Error', 'Failed to add product. Please try again.');
       console.error('Add product error:', error);

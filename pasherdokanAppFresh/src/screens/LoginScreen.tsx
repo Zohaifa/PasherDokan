@@ -12,24 +12,18 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../utils/auth';
 import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type RootStackParamList = {
-  Login: undefined;
-  Register: undefined;
-};
-
-type Props = StackScreenProps<RootStackParamList, 'Login'>;
-
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
+const LoginScreen: React.FC = () => {
   const { setIsAuthenticated, setUserRole } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -40,19 +34,21 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setLoading(true);
       setError('');
-      // Debug logging - login attempt
       console.log('Login attempt with:', { email, password });
-      // Updated API endpoint to include /api prefix
       const response = await api.post('/api/auth/login', { email, password });
-      // Debug logging - successful response
       console.log('Login response:', response.data);
       await AsyncStorage.setItem('userToken', response.data.token);
       const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
       await AsyncStorage.setItem('userRole', tokenPayload.role);
       setIsAuthenticated(true);
       setUserRole(tokenPayload.role);
+      // Navigate based on role
+      if (tokenPayload.role === 'shopkeeper') {
+        router.push('/shopkeeper/dashboard');
+      } else if (tokenPayload.role === 'customer') {
+        router.push('/customer/dashboard');
+      }
     } catch (err: any) {
-      // Debug logging - error details
       console.error('Login error:', err.message);
       console.log('Error response:', err.response);
       console.log('Error request:', err.request);
@@ -123,8 +119,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
 
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerText}>Do not have an account? </Text>
+              <TouchableOpacity onPress={() => router.push('/register')}>
                 <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>

@@ -10,7 +10,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../utils/auth';
 import api from '../services/api';
 
@@ -24,19 +24,12 @@ type Order = {
   createdAt: string;
 };
 
-type RootStackParamList = {
-  OrderHistory: undefined;
-  OrderDetails: { orderId: string };
-  Login: undefined;
-};
-
-type Props = StackScreenProps<RootStackParamList, 'OrderHistory'>;
-
-const OrderHistory: React.FC<Props> = ({ navigation }) => {
+const OrderHistory: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
   const fetchOrders = useCallback(async () => {
     if (!isAuthenticated) { return; }
@@ -45,6 +38,7 @@ const OrderHistory: React.FC<Props> = ({ navigation }) => {
       const response = await api.get('/orders/customer');
       setOrders(response.data);
     } catch (error) {
+      console.error('Order history fetch error:', error);
       Alert.alert('Error', 'Failed to load order history');
     } finally {
       setLoading(false);
@@ -92,7 +86,7 @@ const OrderHistory: React.FC<Props> = ({ navigation }) => {
   const renderOrder = ({ item }: { item: Order }) => (
     <TouchableOpacity
       style={styles.orderCard}
-      onPress={() => navigation.navigate('OrderDetails', { orderId: item._id })}
+      onPress={() => router.push('/order-details?orderId=' + item._id)}
     >
       <View style={styles.orderHeader}>
         <View>
@@ -132,7 +126,7 @@ const OrderHistory: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.authMessage}>
           <Text style={styles.authText}>Please log in to view your order history</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => router.push('/login')}>
             <Text style={styles.loginLink}>Log In</Text>
           </TouchableOpacity>
         </View>
@@ -159,7 +153,7 @@ const OrderHistory: React.FC<Props> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.shopButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => router.back()}
           >
             <Text style={styles.shopButtonText}>Start Shopping</Text>
           </TouchableOpacity>

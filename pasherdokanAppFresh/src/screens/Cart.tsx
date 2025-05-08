@@ -10,7 +10,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../utils/auth';
 import api from '../services/api';
 
@@ -22,19 +22,13 @@ type CartItem = {
   image?: string;
 };
 
-type RootStackParamList = {
-  Cart: undefined;
-  OrderPlacement: undefined;
-  Login: undefined;
-};
-
-type Props = StackScreenProps<RootStackParamList, 'Cart'>;
-
-const Cart: React.FC<Props> = ({ navigation }) => {
+const Cart: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [total, setTotal] = useState<number>(0);
+  const router = useRouter();
+
   const fetchCart = useCallback(async () => {
     try {
       setLoading(true);
@@ -47,6 +41,7 @@ const Cart: React.FC<Props> = ({ navigation }) => {
       setLoading(false);
     }
   }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchCart();
@@ -96,7 +91,7 @@ const Cart: React.FC<Props> = ({ navigation }) => {
 
   const proceedToCheckout = () => {
     if (cartItems.length > 0) {
-      navigation.navigate('OrderPlacement');
+      router.push('/customer/order-placement');
     } else {
       Alert.alert('Cart Empty', 'Please add items to your cart');
     }
@@ -107,7 +102,7 @@ const Cart: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.authMessage}>
           <Text style={styles.authText}>Please log in to view your cart</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => router.push('/login')}>
             <Text style={styles.loginLink}>Log In</Text>
           </TouchableOpacity>
         </View>
@@ -140,7 +135,7 @@ const Cart: React.FC<Props> = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={styles.shopButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => router.back()}
           >
             <Text style={styles.shopButtonText}>Continue Shopping</Text>
           </TouchableOpacity>

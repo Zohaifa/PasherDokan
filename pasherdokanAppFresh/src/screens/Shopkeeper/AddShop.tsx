@@ -14,25 +14,18 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../utils/auth';
 import api from '../../services/api';
 
-type RootStackParamList = {
-  AddShop: undefined;
-  ShopkeeperDashboard: { shopId?: string };
-  Login: undefined;
-};
-
-type Props = StackScreenProps<RootStackParamList, 'AddShop'>;
-
-const AddShop: React.FC<Props> = ({ navigation }) => {
+const AddShop: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleCreateShop = async () => {
     // Validation
@@ -59,7 +52,7 @@ const AddShop: React.FC<Props> = ({ navigation }) => {
       Alert.alert(
         'Success',
         'Shop created successfully',
-        [{ text: 'OK', onPress: () => navigation.navigate('ShopkeeperDashboard', { shopId: response.data._id }) }]
+        [{ text: 'OK', onPress: () => router.push('/shopkeeper/dashboard?shopId=' + response.data._id) }]
       );
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create shop');
@@ -73,7 +66,7 @@ const AddShop: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.container}>
         <View style={styles.authMessage}>
           <Text style={styles.authText}>Please log in to add a shop</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => router.push('/login')}>
             <Text style={styles.loginLink}>Log In</Text>
           </TouchableOpacity>
         </View>
@@ -154,7 +147,7 @@ const AddShop: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={() => navigation.goBack()}
+                  onPress={() => router.back()}
                   disabled={loading}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -179,7 +172,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 20,
-    justifyContent: 'center', // Centers content vertically
+    justifyContent: 'center',
   },
   header: {
     marginBottom: 5,
@@ -199,7 +192,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginVertical: 20, // Add vertical margin
+    marginVertical: 20,
   },
   inputContainer: {
     marginBottom: 20,

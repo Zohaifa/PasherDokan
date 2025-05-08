@@ -1,33 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
-import { RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
 
-type RootStackParamList = {
-  ShopkeeperDashboard: { shopId?: string };
-  AddShop: undefined;
-  AddProduct: { shopId: string };
-  Login: undefined;
-};
-
-type ShopkeeperDashboardRouteProp = RouteProp<RootStackParamList, 'ShopkeeperDashboard'>;
-type ShopkeeperDashboardNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ShopkeeperDashboard'>;
-
-type Props = {
-  route: ShopkeeperDashboardRouteProp;
-  navigation: ShopkeeperDashboardNavigationProp;
-};
-
-const ShopkeeperDashboard: React.FC<Props> = ({ route, navigation }) => {
-  const shopId = route.params?.shopId;
+const ShopkeeperDashboard: React.FC = () => {
+  const router = useRouter();
+  const { shopId } = useLocalSearchParams();
 
   const handleAddProduct = () => {
     if (!shopId) {
       Alert.alert('Error', 'Please create a shop first.');
       return;
     }
-    navigation.navigate('AddProduct', { shopId });
+    router.push(`/shopkeeper/add-product?shopId=${shopId}`);
   };
 
   return (
@@ -39,7 +24,7 @@ const ShopkeeperDashboard: React.FC<Props> = ({ route, navigation }) => {
           </View>
           <Text style={styles.headerTitle}>Shopkeeper Dashboard</Text>
           <View style={styles.logoutButtonContainer}>
-            <LogoutButton navigation={navigation} />
+            <LogoutButton />
           </View>
         </View>
 
@@ -62,7 +47,7 @@ const ShopkeeperDashboard: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={[styles.actionButton, shopId ? styles.secondaryButton : styles.primaryButton]}
-            onPress={() => navigation.navigate('AddShop')}
+            onPress={() => router.push('/shopkeeper/add-shop')}
           >
             <Text style={styles.actionButtonText}>
               {shopId ? 'Manage Shop Details' : 'Create a Shop'}

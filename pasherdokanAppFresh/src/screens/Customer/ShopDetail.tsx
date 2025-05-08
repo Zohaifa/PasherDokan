@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Button, StyleSheet } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../../services/api';
-import { RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type Product = {
   _id: string;
@@ -19,34 +18,25 @@ type Shop = {
   location: { latitude: number; longitude: number };
 };
 
-type RootStackParamList = {
-  ShopDetail: { shop: Shop };
-  OrderPlacement: { shop: { _id: string; name: string }; product: { _id: string; name: string; price: number } };
-};
-
-type ShopDetailRouteProp = RouteProp<RootStackParamList, 'ShopDetail'>;
-type ShopDetailNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ShopDetail'>;
-
-type Props = {
-  route: ShopDetailRouteProp;
-  navigation: ShopDetailNavigationProp;
-};
-
-const ShopDetail: React.FC<Props> = ({ route, navigation }) => {
-  const { shop } = route.params;
+const ShopDetail: React.FC = () => {
+  const { shop: shopParam } = useLocalSearchParams();
+  const router = useRouter();
+  const shop: Shop | null = shopParam ? JSON.parse(shopParam as string) : null;
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await api.get(`/products?shop=${shop._id}`);
-        setProducts(response.data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
-    fetchProducts();
-  }, [shop._id]);
+    if (shop) {
+      const fetchProducts = async () => {
+        try {
+          const response = await api.get(`/products?shop=${shop._id}`);
+          setProducts(response.data);
+        } catch (error) {
+          console.error('Error fetching products:', error);
+        }
+      };
+      fetchProducts();
+    }
+  }, [shop]);
 
   const renderProduct = ({ item }: { item: Product }) => (
     <View style={styles.productCard}>
@@ -56,10 +46,14 @@ const ShopDetail: React.FC<Props> = ({ route, navigation }) => {
       <Text>Stock: {item.stock}</Text>
       <Button
         title="Order Now"
-        onPress={() => navigation.navigate('OrderPlacement', { shop: { _id: shop._id, name: shop.name }, product: { _id: item._id, name: item.name, price: item.price } })}
+        onPress={() => router.push({ pathname: '/customer/order-placement', params: { shop: JSON.stringify({ _id: shop?._id, name: shop?.name }), product: JSON.stringify({ _id: item._id, name: item.name, price: item.price }) } })}
       />
     </View>
   );
+
+  if (!shop) {
+    return <View><Text>Error: Shop data not found.</Text></View>;
+  }
 
   return (
     <View style={styles.container}>

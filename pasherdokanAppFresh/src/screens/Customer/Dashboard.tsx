@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import api from '../../services/api';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../utils/auth';
 import LogoutButton from '../../components/LogoutButton';
 
@@ -13,23 +13,12 @@ type Shop = {
   location: { latitude: number; longitude: number };
 };
 
-type RootStackParamList = {
-  CustomerDashboard: undefined;
-  ShopDetail: { shop: Shop };
-  Login: undefined;
-};
-
-type CustomerDashboardNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CustomerDashboard'>;
-
-type Props = {
-  navigation: CustomerDashboardNavigationProp;
-};
-
-const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
+const CustomerDashboard: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const router = useRouter();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -70,7 +59,7 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
       </View>
       <TouchableOpacity
         style={styles.viewButton}
-        onPress={() => navigation.navigate('ShopDetail', { shop: item })}
+        onPress={() => router.push({ pathname: '/customer/shop-detail', params: { shop: JSON.stringify(item) } })}
       >
         <Text style={styles.viewButtonText}>View Shop</Text>
       </TouchableOpacity>
@@ -83,7 +72,7 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.emptyText}>Please log in to view nearby shops</Text>
         <TouchableOpacity
           style={[styles.viewButton, styles.loginButton]}
-          onPress={() => navigation.navigate('Login')}
+          onPress={() => router.push('/login')}
         >
           <Text style={styles.viewButtonText}>Go to Login</Text>
         </TouchableOpacity>
@@ -99,7 +88,7 @@ const CustomerDashboard: React.FC<Props> = ({ navigation }) => {
         </View>
         <Text style={styles.headerTitle}>PasherDokan</Text>
         <View style={styles.logoutButtonContainer}>
-          <LogoutButton navigation={navigation} />
+          <LogoutButton />
         </View>
       </View>
       <Text style={styles.title}>Nearby Shops</Text>
