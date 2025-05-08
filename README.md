@@ -10,7 +10,7 @@
 In Bangladesh, small shopkeepers often lack digital tools to reach online customers, while buyers struggle to discover nearby stores offering essential goods. Existing platforms (e.g., Daraz, Chaldal) cater to wider markets, missing the **hyperlocal** niche.
 
 ### 💡 Solution
-LocalBazaar enables shopkeepers to register their business for a **one-time fee of 100 Taka** and start selling to customers within a **2km radius**. The app uses location-based services, shop discovery, and cash-on-delivery logistics to bridge the gap between physical and digital commerce.
+PasherDokan enables shopkeepers to register their business for a **one-time fee of 100 Taka** and start selling to customers within a **2km radius**. The app uses location-based services, shop discovery, and cash-on-delivery logistics to bridge the gap between physical and digital commerce.
 
 ---
 
@@ -39,14 +39,14 @@ LocalBazaar enables shopkeepers to register their business for a **one-time fee 
 ## 🏗️ System Architecture
 
 ```plaintext
-Client (React Native / Flutter)
-         |
-         v
-     API Gateway (Node.js / Express)
-         |
-    ---------------------
-    |      |     |      |
- Auth  Location  Orders  Products
-Service Services Service  Service
-         |
-     MongoDB Atlas
+        Client (React Native)
+                 |
+                 v
+        API Gateway (Node.js)
+                 |
+    -------------------------------
+    |         |         |         |
+Auth      Location   Orders    Products
+Service   Services   Service   Service
+                 |
+           MongoDB Atlas
