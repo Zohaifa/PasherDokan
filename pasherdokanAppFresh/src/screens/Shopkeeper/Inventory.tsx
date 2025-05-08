@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
+import ShopkeeperLayout from './BottomNav';
 
-const Inventory = () => {
+const InventoryScreen = () => {
   const { shopId } = useLocalSearchParams();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,7 +34,7 @@ const Inventory = () => {
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={[styles.actionButton, shopId ? styles.primaryButton : styles.disabledButton]}
-            onPress={() => shopId ? console.log('Add item to inventory') : Alert.alert('Error', 'Please create a shop first.')}
+            onPress={() => shopId ? router.push(`/shopkeeper/add-product?shopId=${shopId}`) : Alert.alert('Error', 'Please create a shop first.')}
             disabled={!shopId}
           >
             <Text style={styles.actionButtonText}>Add Item</Text>
@@ -40,6 +42,14 @@ const Inventory = () => {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+};
+
+const ShopkeeperInventory: React.FC = () => {
+  return (
+    <ShopkeeperLayout currentTab="Inventory">
+      <InventoryScreen />
+    </ShopkeeperLayout>
   );
 };
 
@@ -142,4 +152,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Inventory;
+export default ShopkeeperInventory;

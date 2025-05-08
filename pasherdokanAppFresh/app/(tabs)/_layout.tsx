@@ -1,3 +1,8 @@
+// This file is used to create a tab layout for the app using Expo Router and React Navigation.
+// It dynamically renders different tabs based on the user's role (shopkeeper or customer) and their authentication status.
+// This is Option and kept to if We want to use it in the future.
+// It also includes custom tab icons and styles for the tab bar.
+
 import { Tabs } from 'expo-router';
 import React, { ComponentProps } from 'react';
 import { Platform } from 'react-native';
