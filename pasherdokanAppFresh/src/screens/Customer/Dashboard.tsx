@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   header: {
+    marginTop: 35,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#2c3e50',
     flex: 1, // Allow title to take available space

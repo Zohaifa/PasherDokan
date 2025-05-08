@@ -1,9 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
 
-const ShopkeeperDashboard: React.FC = () => {
+const Tab = createBottomTabNavigator();
+
+const DashboardScreen = () => {
   const router = useRouter();
   const { shopId } = useLocalSearchParams();
 
@@ -22,7 +26,7 @@ const ShopkeeperDashboard: React.FC = () => {
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>PD</Text>
           </View>
-          <Text style={styles.headerTitle}>Shopkeeper Dashboard</Text>
+          <Text style={styles.headerTitle}>Dashboard</Text>
           <View style={styles.logoutButtonContainer}>
             <LogoutButton />
           </View>
@@ -77,6 +81,134 @@ const ShopkeeperDashboard: React.FC = () => {
   );
 };
 
+const AddProductScreen = () => (
+  <View style={styles.centered}>
+    <Text style={styles.screenTitle}>Add Product Screen</Text>
+    <Text>Implement Add Product functionality here.</Text>
+  </View>
+);
+
+const InventoryScreen = () => (
+  <View style={styles.centered}>
+    <Text style={styles.screenTitle}>Inventory Screen</Text>
+    <Text>Implement Inventory functionality here.</Text>
+  </View>
+);
+
+const OrdersScreen = () => (
+  <View style={styles.centered}>
+    <Text style={styles.screenTitle}>Orders Screen</Text>
+    <Text>Implement Orders functionality here.</Text>
+  </View>
+);
+
+const ShopkeeperDashboard: React.FC = () => {
+  const { shopId } = useLocalSearchParams();
+  const router = useRouter();
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap | undefined;
+
+          if (route.name === 'Dashboard') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'AddProduct') {
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
+          } else if (route.name === 'Inventory') {
+            iconName = focused ? 'list' : 'list-outline';
+          } else if (route.name === 'Orders') {
+            iconName = focused ? 'receipt' : 'receipt-outline';
+          }
+
+          return iconName ? <Ionicons name={iconName} size={size} color={color} /> : null;
+        },
+        tabBarActiveTintColor: '#4a69bd',
+        tabBarInactiveTintColor: '#7f8c8d',
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: '#e0e0e0',
+          height: 75,
+          paddingBottom: 5,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{ title: 'Dashboard' }}
+        listeners={{
+          tabPress: e => {
+            // Prevent default action
+            e.preventDefault();
+            // Navigate using Expo Router
+            router.push(`/shopkeeper/dashboard?shopId=${shopId || ''}`);
+          },
+        }}
+      />
+      <Tab.Screen
+        name="AddProduct"
+        component={AddProductScreen}
+        options={{
+          title: 'Add Product',
+        }}
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            if (shopId) {
+              router.push(`/shopkeeper/add-product?shopId=${shopId}`);
+            } else {
+              Alert.alert('Error', 'Please create a shop first.');
+            }
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Inventory"
+        component={InventoryScreen}
+        options={{
+          title: 'Inventory',
+        }}
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            if (shopId) {
+              router.push(`/shopkeeper/inventory?shopId=${shopId}`);
+            } else {
+              Alert.alert('Error', 'Please create a shop first.');
+            }
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Orders"
+        component={OrdersScreen}
+        options={{
+          title: 'Orders',
+        }}
+        listeners={{
+          tabPress: e => {
+            e.preventDefault();
+            if (shopId) {
+              router.push(`/shopkeeper/orders?shopId=${shopId}`);
+            } else {
+              Alert.alert('Error', 'Please create a shop first.');
+            }
+          },
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -86,6 +218,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    marginTop: 35,
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 25,
@@ -179,6 +312,18 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '500',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 10,
   },
 });
 
