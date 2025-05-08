@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } f
 import { useLocalSearchParams } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
 import api from '../../services/api';
+import ShopkeeperLayout from './BottomNav';
 
-const Orders = () => {
+const OrdersScreen = () => {
   const { shopId } = useLocalSearchParams();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,14 @@ const Orders = () => {
   );
 };
 
+const ShopkeeperOrders: React.FC = () => {
+  return (
+    <ShopkeeperLayout currentTab="Orders">
+      <OrdersScreen />
+    </ShopkeeperLayout>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -173,4 +182,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Orders;
+export default ShopkeeperOrders;
