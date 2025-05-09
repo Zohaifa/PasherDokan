@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,42 +17,160 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../utils/auth';
 import api from '../../services/api';
+import * as Location from 'expo-location';
+import { WebView } from 'react-native-webview';
+
+const mapHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OpenStreetMap with Leaflet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { height: 100vh; width: 100vw; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    let map, marker;
+
+    // Initialize map at a default location
+    map = L.map('map').setView([22.39302, 91.82298], 13);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Function to update the user's location
+    window.setUserLocation = function(lat, lng) {
+      map.setView([lat, lng], 13);
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+    };
+
+    // On map click, update marker and send coordinates to React Native
+    map.on('click', function(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+      // Send coordinates to React Native
+      window.ReactNativeWebView.postMessage(JSON.stringify({ lat, lng }));
+    });
+
+    // Show user's location if available
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserLocation(lat, lng);
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+        }
+      );
+    }
+  </script>
+</body>
+</html>
+`;
 
 const AddShop: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [name, setName] = useState('');
   const [type, setType] = useState('');
-  const [location, setLocation] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [mapLoading, setMapLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const webViewRef = useRef<any>(null);
+
+  useEffect(() => {
+    const getLocation = async () => {
+      try {
+        // Request location permission
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setError('Location permission denied. Using default location.');
+          setMapLoading(false);
+          return;
+        }
+
+        // Get user's current location
+        let location = await Location.getCurrentPositionAsync({});
+        setSelectedLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        // Inject JavaScript to set the map's center to the user's location
+        if (webViewRef.current) {
+          webViewRef.current.injectJavaScript(`
+            window.setUserLocation(${location.coords.latitude}, ${location.coords.longitude});
+            true;
+          `);
+        }
+      } catch (err: any) {
+        console.error('Location error:', err);
+        setError(`Failed to get current location: ${err?.message || ''}. Using default location.`);
+      } finally {
+        setMapLoading(false);
+      }
+    };
+
+    getLocation();
+  }, []);
+
+  const handleMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      setSelectedLocation({
+        latitude: data.lat,
+        longitude: data.lng,
+      });
+      setError(null);
+    } catch (err) {
+      console.error('Error parsing WebView message:', err);
+    }
+  };
 
   const handleCreateShop = async () => {
-    // Validation
-    if (!name || !type || !location) {
-      setError('Please fill in all fields');
+    if (!name.trim() || !type.trim()) {
+      setError('Please fill in shop name and type');
+      return;
+    }
+
+    if (!selectedLocation) {
+      setError('Please select a location on the map');
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      // Parse location string to get latitude and longitude
-      const [lat, lng] = location.split(',').map(coord => parseFloat(coord.trim()));
-      if (isNaN(lat) || isNaN(lng)) {
-        setError('Invalid location format. Use "latitude,longitude"');
-        setLoading(false);
-        return;
-      }
+      setError(null);
+      const { latitude, longitude } = selectedLocation;
       const response = await api.post('/shops', {
         name,
         type,
-        location: { type: 'Point', coordinates: [lng, lat] },
+        location: { type: 'Point', coordinates: [longitude, latitude] },
       });
       Alert.alert(
         'Success',
         'Shop created successfully',
-        [{ text: 'OK', onPress: () => router.push('/shopkeeper/dashboard?shopId=' + response.data._id) }]
+        [{ text: 'OK', onPress: () => router.push(`/shopkeeper/dashboard?shopId=${response.data._id}`) }]
       );
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create shop');
@@ -100,7 +218,7 @@ const AddShop: React.FC = () => {
                   value={name}
                   onChangeText={(text) => {
                     setName(text);
-                    setError('');
+                    setError(null);
                   }}
                 />
               </View>
@@ -113,31 +231,48 @@ const AddShop: React.FC = () => {
                   value={type}
                   onChangeText={(text) => {
                     setType(text);
-                    setError('');
+                    setError(null);
                   }}
                 />
               </View>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Location</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Format: latitude,longitude (e.g., 23.8103,90.4125)"
-                  placeholderTextColor="#a0a0a0"
-                  value={location}
-                  onChangeText={(text) => {
-                    setLocation(text);
-                    setError('');
-                  }}
-                />
-                <Text style={styles.helperText}>
-                  Enter the coordinates of your shop location
-                </Text>
+                <Text style={styles.label}>Shop Location</Text>
+                {mapLoading ? (
+                  <View style={styles.mapLoading}>
+                    <ActivityIndicator size="large" color="#4a69bd" />
+                    <Text style={styles.helperText}>Loading map...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.mapContainer}>
+                    <WebView
+                      ref={webViewRef}
+                      source={{ html: mapHtml }}
+                      style={styles.map}
+                      onMessage={handleMessage}
+                      javaScriptEnabled={true}
+                      domStorageEnabled={true}
+                      onLoadEnd={() => setMapLoading(false)}
+                    />
+                    <Text style={styles.helperText}>
+                      Tap on the map to set your shop location
+                    </Text>
+                    {selectedLocation && (
+                      <Text style={styles.coordinatesText}>
+                        Selected: {selectedLocation.latitude.toFixed(6)},{' '}
+                        {selectedLocation.longitude.toFixed(6)}
+                      </Text>
+                    )}
+                    <Text style={styles.attribution}>
+                      © OpenStreetMap contributors
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.createButton}
                   onPress={handleCreateShop}
-                  disabled={loading}
+                  disabled={loading || mapLoading}
                 >
                   {loading ? (
                     <ActivityIndicator size="small" color="#ffffff" />
@@ -148,7 +283,7 @@ const AddShop: React.FC = () => {
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={() => router.back()}
-                  disabled={loading}
+                  disabled={loading || mapLoading}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
@@ -213,9 +348,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2c3e50',
   },
+  mapContainer: {
+    height: 300,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  map: {
+    flex: 1,
+  },
+  mapLoading: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   helperText: {
     fontSize: 12,
     color: '#7f8c8d',
+    marginTop: 5,
+  },
+  coordinatesText: {
+    fontSize: 14,
+    color: '#34495e',
+    marginTop: 5,
+  },
+  attribution: {
+    fontSize: 10,
+    color: '#7f8c8d',
+    textAlign: 'center',
     marginTop: 5,
   },
   buttonContainer: {
