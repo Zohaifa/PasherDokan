@@ -37,9 +37,13 @@ const mapHtml = `
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     let map, marker;
+    
+    // Using a neutral default location (middle of Bangladesh)
+    const DEFAULT_LAT = 23.777176;
+    const DEFAULT_LNG = 90.399452;
 
-    // Initialize map at a default location
-    map = L.map('map').setView([22.39302, 91.82298], 13);
+    // Initialize map with a more neutral default location
+    map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -47,42 +51,53 @@ const mapHtml = `
       maxZoom: 19,
     }).addTo(map);
 
-    // Function to update the user's location
+    // Function to update the user's location - made more robust
     window.setUserLocation = function(lat, lng) {
-      map.setView([lat, lng], 13);
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          error: 'Invalid coordinates provided: ' + lat + ', ' + lng
+        }));
+        return;
+      }
+      
+      console.log("Setting view to:", lat, lng);
+      map.setView([lat, lng], 16);
+      
       if (marker) {
         marker.setLatLng([lat, lng]);
       } else {
         marker = L.marker([lat, lng]).addTo(map);
       }
+      
+      window.ReactNativeWebView.postMessage(JSON.stringify({ 
+        info: 'Location set via React Native',
+        lat: lat,
+        lng: lng
+      }));
     };
 
     // On map click, update marker and send coordinates to React Native
     map.on('click', function(e) {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
+      
       if (marker) {
         marker.setLatLng([lat, lng]);
       } else {
         marker = L.marker([lat, lng]).addTo(map);
       }
+      
       // Send coordinates to React Native
       window.ReactNativeWebView.postMessage(JSON.stringify({ lat, lng }));
     });
 
-    // Show user's location if available
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          setUserLocation(lat, lng);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-        }
-      );
-    }
+    // Error handler
+    window.onerror = function(message) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({error: message}));
+    };
+    
+    // Signal that the map is ready
+    window.ReactNativeWebView.postMessage(JSON.stringify({info: 'Map initialized'}));
   </script>
 </body>
 </html>
@@ -96,52 +111,103 @@ const AddShop: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mapLoading, setMapLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [webViewLoaded, setWebViewLoaded] = useState(false);
   const router = useRouter();
   const webViewRef = useRef<any>(null);
 
-  useEffect(() => {
-    const getLocation = async () => {
-      try {
-        // Request location permission
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setError('Location permission denied. Using default location.');
+        useEffect(() => {
+      const getLocation = async () => {
+        try {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            console.log('Location permission denied');
+            setError('Location permission denied. Using default location.');
+            setMapLoading(false);
+            return;
+          }
+      
+          console.log('Location permission granted, getting current position...');
+          
+          let location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Highest
+          });
+          
+          console.log('Location obtained:', location.coords);
+          
+          if (location.coords.latitude === 37.4219983 && location.coords.longitude === -122.084) {
+            console.log('Detected emulator default location, using Dhaka coordinates instead');
+            
+            setSelectedLocation({
+              latitude: 23.777176, 
+              longitude: 90.399452,
+            });
+          } else {
+            setSelectedLocation({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            });
+          }
+        } catch (err: any) {
+          console.error('Location error:', err);
+          setError(`Failed to get current location: ${err?.message || ''}. Using default location.`);
+          setSelectedLocation({
+            latitude: 23.777176, 
+            longitude: 90.399452,
+          });
+        } finally {
           setMapLoading(false);
-          return;
         }
+      };
+      
+      getLocation();
+    }, []);
 
-        // Get user's current location
-        let location = await Location.getCurrentPositionAsync({});
-        setSelectedLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        // Inject JavaScript to set the map's center to the user's location
+  useEffect(() => {
+    if (webViewLoaded && selectedLocation && webViewRef.current) {
+      console.log('Injecting location into WebView:', selectedLocation);
+      
+      const injectScript = `
+        try {
+          console.log("Setting user location to: ${selectedLocation.latitude}, ${selectedLocation.longitude}");
+          window.setUserLocation(${selectedLocation.latitude}, ${selectedLocation.longitude});
+        } catch(e) {
+          console.error("Error setting location:", e);
+        }
+        true;
+      `;
+      
+      webViewRef.current.injectJavaScript(injectScript);
+      
+      setTimeout(() => {
         if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(`
-            window.setUserLocation(${location.coords.latitude}, ${location.coords.longitude});
-            true;
-          `);
+          webViewRef.current.injectJavaScript(injectScript);
         }
-      } catch (err: any) {
-        console.error('Location error:', err);
-        setError(`Failed to get current location: ${err?.message || ''}. Using default location.`);
-      } finally {
-        setMapLoading(false);
-      }
-    };
-
-    getLocation();
-  }, []);
+      }, 1000);
+    }
+  }, [webViewLoaded, selectedLocation]);
 
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      setSelectedLocation({
-        latitude: data.lat,
-        longitude: data.lng,
-      });
-      setError(null);
+      
+      if (data.error) {
+        console.error('WebView error:', data.error);
+        setError(`Map error: ${data.error}`);
+        return;
+      }
+      
+      if (data.info) {
+        console.log('WebView info:', data.info);
+        return;
+      }
+      
+      if (data.lat && data.lng) {
+        setSelectedLocation({
+          latitude: data.lat,
+          longitude: data.lng,
+        });
+        setError(null);
+      }
     } catch (err) {
       console.error('Error parsing WebView message:', err);
     }
@@ -251,7 +317,11 @@ const AddShop: React.FC = () => {
                       onMessage={handleMessage}
                       javaScriptEnabled={true}
                       domStorageEnabled={true}
-                      onLoadEnd={() => setMapLoading(false)}
+                      geolocationEnabled={true}
+                      onLoadEnd={() => {
+                        setMapLoading(false);
+                        setWebViewLoaded(true);
+                      }}
                     />
                     <Text style={styles.helperText}>
                       Tap on the map to set your shop location
