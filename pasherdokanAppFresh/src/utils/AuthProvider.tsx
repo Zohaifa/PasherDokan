@@ -6,26 +6,30 @@ import { AuthContext } from './auth';
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<'shopkeeper' | 'customer' | null>(null);
+  const [token, setToken] = useState<string | null>(null); // Add token state
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         console.log('Starting AsyncStorage check...');
-        const token = await AsyncStorage.getItem('userToken');
-        console.log('Token retrieved:', token);
+        const storedToken = await AsyncStorage.getItem('userToken');
+        console.log('Token retrieved:', storedToken);
         const role = await AsyncStorage.getItem('userRole');
         console.log('Role retrieved:', role);
-        if (token && role && ['shopkeeper', 'customer'].includes(role)) {
+        if (storedToken && role && ['shopkeeper', 'customer'].includes(role)) {
           setIsAuthenticated(true);
           setUserRole(role as 'shopkeeper' | 'customer');
+          setToken(storedToken); // Set the token state
         } else {
           setIsAuthenticated(false);
           setUserRole(null);
+          setToken(null);
         }
       } catch (error) {
         console.error('Error checking auth:', error);
         setIsAuthenticated(false);
         setUserRole(null);
+        setToken(null);
       }
     };
     checkAuth();
@@ -43,6 +47,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       console.log('AuthProvider: updating state');
       setIsAuthenticated(false);
       setUserRole(null);
+      setToken(null);
       console.log('AuthProvider: state updated');
     } catch (error) {
       console.error('AuthProvider: logout error:', error);
@@ -56,10 +61,12 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     setIsAuthenticated,
     userRole,
     setUserRole,
+    token, // Add token to context value
     logout,
   };
 
   console.log('AuthProvider rendering with logout function available:', typeof logout === 'function');
+  console.log('Current token in context:', token);
 
   if (isAuthenticated === null) {
     return (

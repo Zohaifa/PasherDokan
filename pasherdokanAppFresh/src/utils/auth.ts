@@ -5,6 +5,7 @@ export interface AuthState {
   setIsAuthenticated: (value: boolean) => void;
   userRole: 'shopkeeper' | 'customer' | null;
   setUserRole: (role: 'shopkeeper' | 'customer' | null) => void;
+  token: string | null;
   logout: () => Promise<void>;
 }
 
