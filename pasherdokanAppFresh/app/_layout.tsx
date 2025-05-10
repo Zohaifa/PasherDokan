@@ -40,6 +40,8 @@ export default function RootLayout() {
         <Stack.Screen name="shopkeeper/dashboard" options={{ title: 'Shopkeeper Dashboard' }} />
         <Stack.Screen name="shopkeeper/add-shop" options={{ title: 'Add Shop' }} />
         <Stack.Screen name="shopkeeper/add-product" options={{ title: 'Add Product' }} />
+        <Stack.Screen name="shopkeeper/order" options={{ title: 'Orders' }} />
+        <Stack.Screen name='shopkeeper/inventory' options={{ title: 'Inventory' }} />
         <Stack.Screen name="customer/dashboard" options={{ title: 'Customer Dashboard' }} />
         <Stack.Screen name="customer/shop-detail" options={{ title: 'Shop Detail' }} />
         <Stack.Screen name="customer/order-placement" options={{ title: 'Order Placement' }} />
