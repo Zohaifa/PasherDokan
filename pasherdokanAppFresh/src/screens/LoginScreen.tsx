@@ -38,18 +38,15 @@ const LoginScreen: React.FC = () => {
       const response = await api.post('/auth/login', { email, password });
       console.log('Login response:', response.data);
       
-      // Store token in AsyncStorage
       await AsyncStorage.setItem('userToken', response.data.token);
       
       const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
       await AsyncStorage.setItem('userRole', tokenPayload.role);
       
-      // Update auth context with all values including token
-      setToken(response.data.token); // ADD THIS LINE
+      setToken(response.data.token);
       setIsAuthenticated(true);
       setUserRole(tokenPayload.role);
       
-      // Navigate based on role
       if (tokenPayload.role === 'shopkeeper') {
         router.push('/shopkeeper/dashboard');
       } else if (tokenPayload.role === 'customer') {

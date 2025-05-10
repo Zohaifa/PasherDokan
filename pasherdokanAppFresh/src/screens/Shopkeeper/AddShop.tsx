@@ -116,7 +116,6 @@ const AddShop: React.FC = () => {
   const router = useRouter();
   const webViewRef = useRef<any>(null);
 
-  // Add effect to fetch token from AsyncStorage if needed
   useEffect(() => {
     const checkToken = async () => {
       if (isAuthenticated && !token) {
@@ -244,7 +243,6 @@ const AddShop: React.FC = () => {
       return;
     }
 
-    // Get token from AsyncStorage if not available in context
     let authToken = token;
     if (!authToken) {
       try {

@@ -1,3 +1,11 @@
+
+// This file defines the main navigation structure of the app, including authentication and role-based navigation.
+// This file is no longer used in the app, as the navigation structure is expo router based.
+// However, it is kept here for reference and potential future use.
+
+
+
+
 import React, { useContext } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -13,7 +21,7 @@ import ShopDetail from '../screens/Customer/ShopDetail';
 import OrderPlacement from '../screens/Customer/OrderPlacement';
 import Cart from '../screens/Cart';
 import OrderHistory from '../screens/OrderHistory';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+//import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -48,7 +56,7 @@ const getShopkeeperTabIcon = (route: any, focused: boolean, color: string, size:
   } else if (route.name === 'Orders') {
     iconName = focused ? 'list' : 'list-outline';
   }
-  return <Ionicons name={iconName} size={size} color={color} />;
+  //return <Ionicons name={iconName} size={size} color={color} />;
 };
 
 // Bottom tab navigator for shopkeeper

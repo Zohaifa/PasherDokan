@@ -158,10 +158,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#2c3e50',
-    flex: 1, // Allow title to take available space
+    flex: 1,
   },
   logoutButtonContainer: {
-    marginLeft: 'auto', // Push the logout button to the right
+    marginLeft: 'auto',
   },
   title: {
     fontSize: 24,
