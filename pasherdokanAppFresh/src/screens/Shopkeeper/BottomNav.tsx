@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 
@@ -12,8 +13,33 @@ interface ShopkeeperLayoutProps {
 }
 
 const ShopkeeperLayout: React.FC<ShopkeeperLayoutProps> = ({ children, currentTab }) => {
-  const { shopId } = useLocalSearchParams();
+  const { shopId: urlShopId } = useLocalSearchParams();
+  const [activeShopId, setActiveShopId] = useState<string | null>(urlShopId as string || null);
   const router = useRouter();
+
+  // Check both URL params and AsyncStorage for shopId
+  useEffect(() => {
+    const getStoredShopId = async () => {
+      if (!activeShopId) {
+        try {
+          const storedShopId = await AsyncStorage.getItem('activeShopId');
+          if (storedShopId) {
+            console.log('Retrieved shopId from storage:', storedShopId);
+            setActiveShopId(storedShopId);
+          }
+        } catch (err) {
+          console.error('Failed to get shopId from storage:', err);
+        }
+      }
+    };
+    
+    getStoredShopId();
+  }, [urlShopId, activeShopId]);
+
+  // Use either URL param shopId or the stored one
+  const effectiveShopId = urlShopId || activeShopId;
+
+  // Remove the unused function since we're handling navigation directly in the listeners
 
   return (
       <Tab.Navigator
@@ -56,7 +82,7 @@ const ShopkeeperLayout: React.FC<ShopkeeperLayoutProps> = ({ children, currentTa
           listeners={{
             tabPress: e => {
               e.preventDefault();
-              router.push(`/shopkeeper/dashboard?shopId=${shopId || ''}`);
+              router.push(`/shopkeeper/dashboard${effectiveShopId ? `?shopId=${effectiveShopId}` : ''}`);
             },
           }}
         >
@@ -68,8 +94,8 @@ const ShopkeeperLayout: React.FC<ShopkeeperLayoutProps> = ({ children, currentTa
           listeners={{
             tabPress: e => {
               e.preventDefault();
-              if (shopId) {
-                router.push(`/shopkeeper/add-product?shopId=${shopId}`);
+              if (effectiveShopId) {
+                router.push(`/shopkeeper/add-product?shopId=${effectiveShopId}`);
               } else {
                 Alert.alert('Error', 'Please create a shop first.');
               }
@@ -84,8 +110,8 @@ const ShopkeeperLayout: React.FC<ShopkeeperLayoutProps> = ({ children, currentTa
           listeners={{
             tabPress: e => {
               e.preventDefault();
-              if (shopId) {
-                router.push(`/shopkeeper/inventory?shopId=${shopId}`);
+              if (effectiveShopId) {
+                router.push(`/shopkeeper/inventory?shopId=${effectiveShopId}`);
               } else {
                 Alert.alert('Error', 'Please create a shop first.');
               }
@@ -100,8 +126,8 @@ const ShopkeeperLayout: React.FC<ShopkeeperLayoutProps> = ({ children, currentTa
           listeners={{
             tabPress: e => {
               e.preventDefault();
-              if (shopId) {
-                router.push(`/shopkeeper/orders?shopId=${shopId}`);
+              if (effectiveShopId) {
+                router.push(`/shopkeeper/orders?shopId=${effectiveShopId}`);
               } else {
                 Alert.alert('Error', 'Please create a shop first.');
               }
