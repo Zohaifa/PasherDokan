@@ -18,7 +18,7 @@ import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen: React.FC = () => {
-  const { setIsAuthenticated, setUserRole } = useAuth();
+  const { setIsAuthenticated, setUserRole, setToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,13 +35,20 @@ const LoginScreen: React.FC = () => {
       setLoading(true);
       setError('');
       console.log('Login attempt with:', { email, password });
-      const response = await api.post('/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       console.log('Login response:', response.data);
+      
+      // Store token in AsyncStorage
       await AsyncStorage.setItem('userToken', response.data.token);
+      
       const tokenPayload = JSON.parse(atob(response.data.token.split('.')[1]));
       await AsyncStorage.setItem('userRole', tokenPayload.role);
+      
+      // Update auth context with all values including token
+      setToken(response.data.token); // ADD THIS LINE
       setIsAuthenticated(true);
       setUserRole(tokenPayload.role);
+      
       // Navigate based on role
       if (tokenPayload.role === 'shopkeeper') {
         router.push('/shopkeeper/dashboard');

@@ -19,6 +19,7 @@ import { useAuth } from '../../utils/auth';
 import api from '../../services/api';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const mapHtml = `
 <!DOCTYPE html>
@@ -104,7 +105,7 @@ const mapHtml = `
 `;
 
 const AddShop: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, token, setToken } = useAuth();
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -115,52 +116,71 @@ const AddShop: React.FC = () => {
   const router = useRouter();
   const webViewRef = useRef<any>(null);
 
-        useEffect(() => {
-      const getLocation = async () => {
+  // Add effect to fetch token from AsyncStorage if needed
+  useEffect(() => {
+    const checkToken = async () => {
+      if (isAuthenticated && !token) {
         try {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') {
-            console.log('Location permission denied');
-            setError('Location permission denied. Using default location.');
-            setMapLoading(false);
-            return;
+          const storedToken = await AsyncStorage.getItem('userToken');
+          console.log('Fetching token from storage:', storedToken ? 'Found' : 'Not found');
+          if (storedToken && setToken) {
+            setToken(storedToken);
           }
-      
-          console.log('Location permission granted, getting current position...');
+        } catch (err) {
+          console.error('Failed to get token from storage:', err);
+        }
+      }
+    };
+    
+    checkToken();
+  }, [isAuthenticated, token, setToken]);
+
+  useEffect(() => {
+    const getLocation = async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          console.log('Location permission denied');
+          setError('Location permission denied. Using default location.');
+          setMapLoading(false);
+          return;
+        }
+    
+        console.log('Location permission granted, getting current position...');
+        
+        let location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Highest
+        });
+        
+        console.log('Location obtained:', location.coords);
+        
+        if (location.coords.latitude === 37.4219983 && location.coords.longitude === -122.084) {
+          console.log('Detected emulator default location, using Dhaka coordinates instead');
           
-          let location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Highest
-          });
-          
-          console.log('Location obtained:', location.coords);
-          
-          if (location.coords.latitude === 37.4219983 && location.coords.longitude === -122.084) {
-            console.log('Detected emulator default location, using Dhaka coordinates instead');
-            
-            setSelectedLocation({
-              latitude: 23.777176, 
-              longitude: 90.399452,
-            });
-          } else {
-            setSelectedLocation({
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            });
-          }
-        } catch (err: any) {
-          console.error('Location error:', err);
-          setError(`Failed to get current location: ${err?.message || ''}. Using default location.`);
           setSelectedLocation({
             latitude: 23.777176, 
             longitude: 90.399452,
           });
-        } finally {
-          setMapLoading(false);
+        } else {
+          setSelectedLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
         }
-      };
-      
-      getLocation();
-    }, []);
+      } catch (err: any) {
+        console.error('Location error:', err);
+        setError(`Failed to get current location: ${err?.message || ''}. Using default location.`);
+        setSelectedLocation({
+          latitude: 23.777176, 
+          longitude: 90.399452,
+        });
+      } finally {
+        setMapLoading(false);
+      }
+    };
+    
+    getLocation();
+  }, []);
 
   useEffect(() => {
     if (webViewLoaded && selectedLocation && webViewRef.current) {
@@ -224,22 +244,58 @@ const AddShop: React.FC = () => {
       return;
     }
 
+    // Get token from AsyncStorage if not available in context
+    let authToken = token;
+    if (!authToken) {
+      try {
+        authToken = await AsyncStorage.getItem('userToken');
+        console.log('Retrieved token from storage:', authToken ? 'Found' : 'Not found');
+        if (authToken && setToken) {
+          setToken(authToken);
+        }
+      } catch (err) {
+        console.error('Failed to get token from storage:', err);
+      }
+    }
+
+    if (!authToken) {
+      setError('Authentication token missing. Please log in again.');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const { latitude, longitude } = selectedLocation;
-      const response = await api.post('/shops', {
-        name,
-        type,
-        location: { type: 'Point', coordinates: [longitude, latitude] },
-      });
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      console.log('Sending shop data:', { name, type, location: { type: 'Point', coordinates: [longitude, latitude] } });
+      console.log('Using token:', authToken);
+      console.log('API endpoint:', `${api.defaults.baseURL}/shops`); // Add this for debugging
+
+      const response = await api.post(
+        '/shops',
+        {
+          name,
+          type,
+          location: { type: 'Point', coordinates: [longitude, latitude] },
+        },
+        config
+      );
       Alert.alert(
         'Success',
         'Shop created successfully',
         [{ text: 'OK', onPress: () => router.push(`/shopkeeper/dashboard?shopId=${response.data._id}`) }]
       );
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create shop');
+      console.error('API Error:', err.response?.data || err.message);
+      setError(err.response?.data?.message || 'Failed to create shop. Please check the backend logs.');
     } finally {
       setLoading(false);
     }

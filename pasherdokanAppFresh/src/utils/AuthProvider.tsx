@@ -6,7 +6,7 @@ import { AuthContext } from './auth';
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<'shopkeeper' | 'customer' | null>(null);
-  const [token, setToken] = useState<string | null>(null); // Add token state
+  const [token, setToken] = useState<string | null>(null); 
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -19,7 +19,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         if (storedToken && role && ['shopkeeper', 'customer'].includes(role)) {
           setIsAuthenticated(true);
           setUserRole(role as 'shopkeeper' | 'customer');
-          setToken(storedToken); // Set the token state
+          setToken(storedToken);
         } else {
           setIsAuthenticated(false);
           setUserRole(null);
@@ -43,7 +43,6 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       console.log('AuthProvider: userToken removed');
       await AsyncStorage.removeItem('userRole');
       console.log('AuthProvider: userRole removed');
-      // Update state
       console.log('AuthProvider: updating state');
       setIsAuthenticated(false);
       setUserRole(null);
@@ -55,13 +54,13 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   };
 
-  // Create the context value object explicitly
   const contextValue = {
     isAuthenticated,
     setIsAuthenticated,
     userRole,
     setUserRole,
-    token, // Add token to context value
+    token,
+    setToken,
     logout,
   };
 
