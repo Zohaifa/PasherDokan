@@ -1,21 +1,79 @@
-import React from 'react';
-import { View, Text, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import LogoutButton from '../../components/LogoutButton';
 import ShopkeeperLayout from './BottomNav';
+import api from '../../services/api';
+import { useAuth } from '../../utils/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface Shop {
+  _id: string;
+  name: string;
+  type: string;
+}
 
 const DashboardScreen = () => {
   const router = useRouter();
-  const { shopId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [activeShopId, setActiveShopId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchShops = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching shops...');
+        
+        const response = await api.get('/shops');
+        console.log(`Fetched ${response.data.length} shops`);
+        
+        setShops(response.data);
+        
+        let shopToUse = params.shopId as string;
+        
+        if (!shopToUse && response.data.length > 0) {
+          shopToUse = response.data[0]._id;
+          console.log('Using first shop:', shopToUse);
+          
+          await AsyncStorage.setItem('activeShopId', shopToUse);
+        }
+        
+        setActiveShopId(shopToUse || null);
+      } catch (err: any) {
+        console.error('Error fetching shops:', err.response?.data || err.message);
+        setError('Failed to load shops');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchShops();
+    }
+  }, [token, params.shopId]);
 
   const handleAddProduct = () => {
-    if (!shopId) {
+    if (!activeShopId) {
       Alert.alert('Error', 'Please create a shop first.');
       return;
     }
-    router.push(`/shopkeeper/add-product?shopId=${shopId}`);
+    router.push(`/shopkeeper/add-product?shopId=${activeShopId}`);
   };
+
+  const activeShop = shops.find(shop => shop._id === activeShopId);
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#4a69bd" />
+        <Text style={{ marginTop: 10, color: '#7f8c8d' }}>Loading your shop...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,12 +88,25 @@ const DashboardScreen = () => {
           </View>
         </View>
 
+        {error ? (
+          <View style={[styles.statusCard, styles.errorCard]}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => router.replace('/shopkeeper/dashboard')}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         <View style={styles.statusCard}>
-          {shopId ? (
+          {activeShop ? (
             <>
               <Text style={styles.statusTitle}>Shop Status</Text>
               <Text style={styles.statusActive}>Active</Text>
-              <Text style={styles.shopIdText}>Shop ID: {shopId}</Text>
+              <Text style={styles.shopName}>{activeShop.name} ({activeShop.type})</Text>
+              <Text style={styles.shopIdText}>Shop ID: {activeShopId}</Text>
             </>
           ) : (
             <>
@@ -46,30 +117,67 @@ const DashboardScreen = () => {
           )}
         </View>
 
+        {shops.length > 1 && (
+          <View style={styles.shopSelector}>
+            <Text style={styles.shopSelectorTitle}>Your Shops:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {shops.map(shop => (
+                <TouchableOpacity
+                  key={shop._id}
+                  style={[
+                    styles.shopItem,
+                    shop._id === activeShopId ? styles.activeShopItem : null
+                  ]}
+                  onPress={() => {
+                    setActiveShopId(shop._id);
+                    AsyncStorage.setItem('activeShopId', shop._id);
+                  }}
+                >
+                  <Text 
+                    style={[
+                      styles.shopItemText,
+                      shop._id === activeShopId ? styles.activeShopText : null
+                    ]}
+                  >
+                    {shop.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <View style={styles.actionsContainer}>
           <TouchableOpacity
-            style={[styles.actionButton, shopId ? styles.secondaryButton : styles.primaryButton]}
+            style={[styles.actionButton, activeShop ? styles.secondaryButton : styles.primaryButton]}
             onPress={() => router.push('/shopkeeper/add-shop')}
           >
             <Text style={styles.actionButtonText}>
-              {shopId ? 'Manage Shop Details' : 'Create a Shop'}
+              {activeShop ? 'Create Another Shop' : 'Create a Shop'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.primaryButton, !shopId && styles.disabledButton]}
+            style={[styles.actionButton, styles.primaryButton, !activeShop && styles.disabledButton]}
             onPress={handleAddProduct}
+            disabled={!activeShop}
           >
             <Text style={styles.actionButtonText}>Add New Product</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.secondaryButton, !shopId && styles.disabledButton]}
-            onPress={() => shopId ? console.log('View inventory') : Alert.alert('Error', 'Please create a shop first.')}
+            style={[styles.actionButton, styles.secondaryButton, !activeShop && styles.disabledButton]}
+            onPress={() => activeShopId 
+              ? router.push(`/shopkeeper/inventory?shopId=${activeShopId}`) 
+              : Alert.alert('Error', 'Please create a shop first.')}
+            disabled={!activeShop}
           >
             <Text style={styles.actionButtonText}>View Inventory</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.secondaryButton, !shopId && styles.disabledButton]}
-            onPress={() => shopId ? console.log('View orders') : Alert.alert('Error', 'Please create a shop first.')}
+            style={[styles.actionButton, styles.secondaryButton, !activeShop && styles.disabledButton]}
+            onPress={() => activeShopId 
+              ? router.push(`/shopkeeper/orders?shopId=${activeShopId}`) 
+              : Alert.alert('Error', 'Please create a shop first.')}
+            disabled={!activeShop}
           >
             <Text style={styles.actionButtonText}>View Orders</Text>
           </TouchableOpacity>
@@ -86,7 +194,6 @@ const ShopkeeperDashboard: React.FC = () => {
     </ShopkeeperLayout>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -161,6 +268,13 @@ const styles = StyleSheet.create({
   shopIdText: {
     fontSize: 14,
     color: '#34495e',
+    marginTop: 5,
+  },
+  shopName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#2c3e50',
+    marginBottom: 5,
   },
   actionsContainer: {
     marginBottom: 20,
@@ -198,11 +312,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
   },
-  screenTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+  errorCard: {
+    backgroundColor: '#fff8f8',
+    borderColor: '#e74c3c',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: 16,
     marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '500',
+  },
+  shopSelector: {
+    marginBottom: 20,
+  },
+  shopSelectorTitle: {
+    fontSize: 16,
+    fontWeight: '600', 
+    color: '#2c3e50',
+    marginBottom: 8,
+  },
+  shopItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#ecf0f1',
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  activeShopItem: {
+    backgroundColor: '#4a69bd',
+  },
+  shopItemText: {
+    color: '#2c3e50',
+  },
+  activeShopText: {
+    color: 'white',
+    fontWeight: '500',
   },
 });
 
