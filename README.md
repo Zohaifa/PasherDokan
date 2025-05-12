@@ -33,14 +33,14 @@ PasherDokan enables shopkeepers to register their business for a **one-time fee 
 ## 🏗️ System Architecture
 
 ```plaintext
-            Client (React Native)
-                    |
-                    v
-            API Gateway (Node.js)
-                    |
-        -------------------------------
-        |         |         |         |
-    Auth      Location   Orders    Products
-    Service   Services   Service   Service
-                    |
-               MongoDB Atlas
+                                Client (React Native)
+                                         |
+                                         v
+                                API Gateway (Node.js)
+                                         |
+                        --------------------------------------
+                        |         |          |         |
+                        Auth      Location   Orders    Products
+                        Service   Services   Service   Service
+                                         |
+                                   MongoDB Atlas
