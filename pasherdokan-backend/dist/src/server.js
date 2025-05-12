@@ -65,7 +65,6 @@ app.use('/api/auth', auth_1.default);
 app.use('/api/shops', shops_1.default);
 app.use('/api/products', products_1.default);
 app.use('/api/orders', orders_1.default);
-// Error handling for unmatched routes
 app.use((req, res) => {
     res.status(404).json({ message: `Cannot ${req.method} ${req.originalUrl}` });
 });

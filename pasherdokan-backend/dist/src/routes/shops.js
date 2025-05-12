@@ -17,11 +17,9 @@ const Shop_1 = __importDefault(require("../models/Shop"));
 const auth_1 = __importDefault(require("../middleware/auth"));
 const router = (0, express_1.Router)();
 console.log('Registering shops routes...');
-// Test route
 router.get('/test', (req, res) => {
     res.status(200).json({ message: 'Shops router is loaded' });
 });
-// Create a new shop
 router.post('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, type, location } = req.body;
@@ -33,7 +31,6 @@ router.post('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0,
         res.status(400).json({ message: error.message });
     }
 }));
-// Get all shops for the authenticated shopkeeper
 router.get('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const shops = yield Shop_1.default.find({ shopkeeperId: req.user.id });
@@ -43,7 +40,6 @@ router.get('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, 
         res.status(400).json({ message: error.message });
     }
 }));
-// Delete a shop by ID
 router.delete('/:id', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log(`DELETE request received for shop ID: ${req.params.id}`);
