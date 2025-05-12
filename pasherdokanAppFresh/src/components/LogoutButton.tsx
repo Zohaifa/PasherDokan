@@ -6,10 +6,6 @@ import { useAuth } from '../utils/auth';
 const LogoutButton: React.FC = () => {
   const auth = useAuth();
   const router = useRouter();
-  console.log('LogoutButton rendered, auth object:', JSON.stringify({
-    hasLogout: typeof auth.logout === 'function',
-    isAuthenticated: auth.isAuthenticated,
-  }));
 
   const handleLogout = async () => {
     console.log('Logout button pressed');

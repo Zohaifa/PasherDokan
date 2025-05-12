@@ -4,6 +4,14 @@ import authenticateToken from '../middleware/auth';
 
 const router: Router = Router();
 
+console.log('Registering shops routes...');
+
+// Test route
+router.get('/test', (req: Request, res: Response) => {
+  res.status(200).json({ message: 'Shops router is loaded' });
+});
+
+// Create a new shop
 router.post('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { name, type, location } = req.body;
@@ -15,12 +23,35 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
+// Get all shops for the authenticated shopkeeper
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const shops = await Shop.find({ shopkeeperId: req.user!.id });
     res.json(shops);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete a shop by ID
+router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log(`DELETE request received for shop ID: ${req.params.id}`);
+    const shop = await Shop.findById(req.params.id);
+    if (!shop) {
+      return res.status(404).json({ message: 'Shop not found' });
+    }
+
+    if (shop.shopkeeperId.toString() !== req.user!.id) {
+      return res.status(403).json({ message: 'Not authorized to delete this shop' });
+    }
+
+    await shop.deleteOne();
+    console.log(`Shop ${req.params.id} deleted successfully`);
+    res.status(200).json({ message: 'Shop deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting shop:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

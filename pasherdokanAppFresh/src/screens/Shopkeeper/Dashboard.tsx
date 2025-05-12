@@ -18,6 +18,7 @@ const DashboardScreen = () => {
   const params = useLocalSearchParams();
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [activeShopId, setActiveShopId] = useState<string | null>(null);
@@ -28,7 +29,14 @@ const DashboardScreen = () => {
         setLoading(true);
         console.log('Fetching shops...');
         
-        const response = await api.get('/shops');
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        };
+
+        const response = await api.get('/shops', config);
         console.log(`Fetched ${response.data.length} shops`);
         
         setShops(response.data);
@@ -38,7 +46,6 @@ const DashboardScreen = () => {
         if (!shopToUse && response.data.length > 0) {
           shopToUse = response.data[0]._id;
           console.log('Using first shop:', shopToUse);
-          
           await AsyncStorage.setItem('activeShopId', shopToUse);
         }
         
@@ -53,8 +60,67 @@ const DashboardScreen = () => {
 
     if (token) {
       fetchShops();
+    } else {
+      setError('Authentication token missing. Please log in again.');
+      setLoading(false);
     }
   }, [token, params.shopId]);
+
+  const handleDeleteShop = async () => {
+    if (!activeShopId) {
+      Alert.alert('Error', 'No active shop selected to delete.');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Shop',
+      `Are you sure you want to delete ${activeShop?.name}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleteLoading(true);
+              setError(null);
+
+              const config = {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              };
+
+              console.log(`Attempting DELETE request to: /shops/${activeShopId}`);
+              console.log('Request config:', config);
+              const response = await api.delete(`/shops/${activeShopId}`, config);
+              console.log('Delete response:', response.data);
+
+              const updatedShops = shops.filter(shop => shop._id !== activeShopId);
+              setShops(updatedShops);
+
+              let newActiveShopId: string | null = null;
+              if (updatedShops.length > 0) {
+                newActiveShopId = updatedShops[0]._id;
+                await AsyncStorage.setItem('activeShopId', newActiveShopId);
+              } else {
+                await AsyncStorage.removeItem('activeShopId');
+              }
+
+              setActiveShopId(newActiveShopId);
+              Alert.alert('Success', 'Shop deleted successfully');
+            } catch (err: any) {
+              console.error('Error deleting shop:', err.response?.data || err.message || err.toString());
+              setError(err.response?.data?.message || 'Failed to delete shop. Check backend logs.');
+            } finally {
+              setDeleteLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleAddProduct = () => {
     if (!activeShopId) {
@@ -107,6 +173,17 @@ const DashboardScreen = () => {
               <Text style={styles.statusActive}>Active</Text>
               <Text style={styles.shopName}>{activeShop.name} ({activeShop.type})</Text>
               <Text style={styles.shopIdText}>Shop ID: {activeShopId}</Text>
+              <TouchableOpacity
+                style={[styles.deleteButton, deleteLoading && styles.disabledButton]}
+                onPress={handleDeleteShop}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.deleteButtonText}>Delete Shop</Text>
+                )}
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -275,6 +352,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#2c3e50',
     marginBottom: 5,
+  },
+  deleteButton: {
+    backgroundColor: '#e74c3c',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
   actionsContainer: {
     marginBottom: 20,
