@@ -6,12 +6,10 @@ const router: Router = Router();
 
 console.log('Registering shops routes...');
 
-// Test route
 router.get('/test', (req: Request, res: Response) => {
   res.status(200).json({ message: 'Shops router is loaded' });
 });
 
-// Create a new shop
 router.post('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { name, type, location } = req.body;
@@ -23,7 +21,6 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-// Get all shops for the authenticated shopkeeper
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const shops = await Shop.find({ shopkeeperId: req.user!.id });
@@ -33,7 +30,6 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
-// Delete a shop by ID
 router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     console.log(`DELETE request received for shop ID: ${req.params.id}`);
