@@ -25,7 +25,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" options={{ title: 'Login' }} />
       <Stack.Screen name="register" options={{ title: 'Register' }} />
-      <Stack.Screen name="cart" options={{ title: 'Cart' }} />
+      <Stack.Screen name="customer/cart" options={{ title: 'Cart' }} />
       <Stack.Screen name="order-history" options={{ title: 'Order History' }} />
       <Stack.Screen name="shopkeeper/dashboard" options={{ title: 'Shopkeeper Dashboard' }} />
       <Stack.Screen name="shopkeeper/add-shop" options={{ title: 'Add Shop' }} />
@@ -60,7 +60,7 @@ export default function RootLayout() {
   if (isLoading) {
     return (
       <>
-        <StatusBar style="light" backgroundColor="#4a69bd" />
+        <StatusBar />
         <SplashScreen isLoading={isLoading} />
       </>
     );
@@ -69,7 +69,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <RootLayoutNav />
-      <StatusBar style="dark" backgroundColor="#FFFFFF" />
+      <StatusBar />
     </AuthProvider>
   );
 }
