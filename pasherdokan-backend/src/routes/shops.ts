@@ -10,10 +10,9 @@ router.get('/test', (req: Request, res: Response) => {
   res.status(200).json({ message: 'Shops router is loaded' });
 });
 
-// Add the nearby endpoint - accessible without authentication
 router.get('/nearby', async (req: Request, res: Response) => {
   try {
-    const { lat, lng, radius = 5000 } = req.query;
+    const { lat, lng, radius = 2000 } = req.query;
     
     if (!lat || !lng) {
       return res.status(400).json({ message: 'Latitude and longitude are required' });
@@ -29,13 +28,12 @@ router.get('/nearby', async (req: Request, res: Response) => {
 
     console.log(`Searching for shops near [${longitude}, ${latitude}] with radius ${maxDistance}m`);
 
-    // Find shops near the given coordinates
     const shops = await Shop.find({
       location: {
         $near: {
           $geometry: {
             type: 'Point',
-            coordinates: [longitude, latitude] // MongoDB uses [lng, lat] order
+            coordinates: [longitude, latitude]
           },
           $maxDistance: maxDistance
         }
@@ -44,13 +42,12 @@ router.get('/nearby', async (req: Request, res: Response) => {
 
     console.log(`Found ${shops.length} shops nearby`);
     
-    // Transform data format to match frontend expectations
     const formattedShops = shops.map(shop => ({
       _id: shop._id,
       name: shop.name,
-      shopType: shop.type, // Convert type to shopType for frontend
+      shopType: shop.type, 
       location: {
-        latitude: shop.location.coordinates[1],  // Convert from [lng, lat] to {latitude, longitude}
+        latitude: shop.location.coordinates[1], 
         longitude: shop.location.coordinates[0]
       }
     }));
