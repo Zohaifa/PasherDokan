@@ -11,8 +11,8 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../utils/auth';
-import api from '../services/api';
+import { useAuth } from '../../utils/auth';
+import api from '../../services/api';
 
 type CartItem = {
   productId: string;

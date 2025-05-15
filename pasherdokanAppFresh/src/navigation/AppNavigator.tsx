@@ -19,7 +19,7 @@ import AddProduct from '../screens/Shopkeeper/AddProduct';
 import CustomerDashboard from '../screens/Customer/Dashboard';
 import ShopDetail from '../screens/Customer/ShopDetail';
 import OrderPlacement from '../screens/Customer/OrderPlacement';
-import Cart from '../screens/Cart';
+import Cart from '../screens/Customer/Cart';
 import OrderHistory from '../screens/OrderHistory';
 //import Ionicons from 'react-native-vector-icons/Ionicons';
 
