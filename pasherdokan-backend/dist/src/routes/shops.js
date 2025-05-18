@@ -20,6 +20,47 @@ console.log('Registering shops routes...');
 router.get('/test', (req, res) => {
     res.status(200).json({ message: 'Shops router is loaded' });
 });
+router.get('/nearby', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { lat, lng, radius = 2000 } = req.query;
+        if (!lat || !lng) {
+            return res.status(400).json({ message: 'Latitude and longitude are required' });
+        }
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lng);
+        const maxDistance = parseInt(radius);
+        if (isNaN(latitude) || isNaN(longitude)) {
+            return res.status(400).json({ message: 'Invalid latitude or longitude values' });
+        }
+        console.log(`Searching for shops near [${longitude}, ${latitude}] with radius ${maxDistance}m`);
+        const shops = yield Shop_1.default.find({
+            location: {
+                $near: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [longitude, latitude]
+                    },
+                    $maxDistance: maxDistance
+                }
+            }
+        });
+        console.log(`Found ${shops.length} shops nearby`);
+        const formattedShops = shops.map(shop => ({
+            _id: shop._id,
+            name: shop.name,
+            shopType: shop.type,
+            location: {
+                latitude: shop.location.coordinates[1],
+                longitude: shop.location.coordinates[0]
+            }
+        }));
+        res.json(formattedShops);
+    }
+    catch (error) {
+        console.error('Error finding nearby shops:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+}));
 router.post('/', auth_1.default, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { name, type, location } = req.body;
