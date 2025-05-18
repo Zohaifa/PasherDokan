@@ -3,8 +3,6 @@
 
 PasherDokan is an open-source hyperlocal e-commerce platform designed to connect shopkeepers and customers within a 2-kilometer radius in Bangladesh. It empowers local businesses to establish digital storefronts and reach nearby buyers through a user-friendly mobile application, with cash on delivery (CoD) as the primary payment method.
 
-**License:** MIT
-
 ---
 
 ### Table of Contents
@@ -74,7 +72,7 @@ The system is built on a modular service-based architecture:
 This repository contains the following projects:
 
 1. `pasherdokan-backend` – Backend services built with Node.js
-2. `pasherdokanApp` – Traditional React Native mobile application (not being used)
+2. `pasherdokanApp` – Traditional React Native mobile application (not being used) -- Removed
 3. `pasherdokanAppFresh` – Modern React Native app using Expo (recommended)
 
 ---
@@ -187,5 +185,3 @@ npm test
 ```
 
 ---
-
-PasherDokan is building digital bridges for local commerce in Bangladesh. Whether you're a developer or a community advocate, we invite you to join us in creating meaningful impact through technology.
