@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from './auth';
+
+const AUTH_TIMEOUT = 300000;
 
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<'shopkeeper' | 'customer' | null>(null);
-  const [token, setToken] = useState<string | null>(null); 
+  const [token, setToken] = useState<string | null>(null);
+  const appState = useRef(AppState.currentState);
+  const backgroundTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -33,6 +37,47 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       }
     };
     checkAuth();
+  }, []);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      console.log(`App state changed: ${appState.current} -> ${nextAppState}`);
+      
+      if (
+        appState.current.match(/active/) && 
+        nextAppState.match(/inactive|background/)
+      ) {
+        console.log('App going to background, setting auto-logout timer');
+        
+        backgroundTimeoutRef.current = setTimeout(() => {
+          console.log('Auto-logout due to inactivity');
+          logout();
+        }, AUTH_TIMEOUT);
+      }
+      
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        console.log('App coming to foreground, cancelling auto-logout timer');
+        
+        if (backgroundTimeoutRef.current) {
+          clearTimeout(backgroundTimeoutRef.current);
+          backgroundTimeoutRef.current = null;
+        }
+      }
+      
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription.remove();
+      if (backgroundTimeoutRef.current) {
+        clearTimeout(backgroundTimeoutRef.current);
+      }
+    };
   }, []);
 
   const logout = async () => {
