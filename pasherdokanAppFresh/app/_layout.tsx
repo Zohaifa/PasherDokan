@@ -35,7 +35,7 @@ function RootLayoutNav() {
       <Stack.Screen name="customer/dashboard" options={{ title: 'Customer Dashboard' }} />
       <Stack.Screen name="customer/shop-detail" options={{ title: 'Shop Detail' }} />
       <Stack.Screen name="customer/order-placement" options={{ title: 'Order Placement' }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {/* Remove the (tabs) screen since we're not using tabs */}
     </Stack>
   );
 }
