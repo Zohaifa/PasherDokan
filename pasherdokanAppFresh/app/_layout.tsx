@@ -25,7 +25,6 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" options={{ title: 'Login' }} />
       <Stack.Screen name="register" options={{ title: 'Register' }} />
-      <Stack.Screen name="customer/cart" options={{ title: 'Cart' }} />
       <Stack.Screen name="order-history" options={{ title: 'Order History' }} />
       <Stack.Screen name="shopkeeper/dashboard" options={{ title: 'Shopkeeper Dashboard' }} />
       <Stack.Screen name="shopkeeper/add-shop" options={{ title: 'Add Shop' }} />
@@ -34,8 +33,8 @@ function RootLayoutNav() {
       <Stack.Screen name='shopkeeper/inventory' options={{ title: 'Inventory' }} />
       <Stack.Screen name="customer/dashboard" options={{ title: 'Customer Dashboard' }} />
       <Stack.Screen name="customer/shop-detail" options={{ title: 'Shop Detail' }} />
+      <Stack.Screen name="customer/cart" options={{ title: 'Cart' }} />
       <Stack.Screen name="customer/order-placement" options={{ title: 'Order Placement' }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     </Stack>
   );
 }
