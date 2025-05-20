@@ -40,6 +40,12 @@
     "scheme": "pasherdokan",
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "df060a66-0e29-46ea-a94d-c35f479d95b4"
+      }
+    }
   }
 }
