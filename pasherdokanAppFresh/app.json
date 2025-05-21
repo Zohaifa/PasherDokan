@@ -20,7 +20,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to find nearby shops."
-      }
+      },
+      "bundleIdentifier": "com.ju4700.pasherdokan"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,9 +31,13 @@
       "permissions": [
         "INTERNET",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "INTERNET",
+        "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.ju4700.pasherdokan"
     },
     "web": {
       "favicon": "./src/assets/favicon.png"

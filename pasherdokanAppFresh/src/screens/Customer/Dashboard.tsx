@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, SafeAreaView, TouchableOpacity, ActivityIndicator, PermissionsAndroid, Platform } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import api from '../../services/api';
 import { useRouter } from 'expo-router';
@@ -193,6 +193,7 @@ const generateMapHtml = (userLat: number, userLng: number, shops: Shop[]) => {
     </html>
   `;
 };
+
 const CustomerDashboard: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
@@ -204,7 +205,6 @@ const CustomerDashboard: React.FC = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  
   const fetchNearbyShops = useCallback(async (lat: number, lng: number) => {
     try {
       setLoading(true);
@@ -260,26 +260,160 @@ const CustomerDashboard: React.FC = () => {
     }
   }, []);
   
+  // Add function to check if location services are enabled
+  const checkLocationServices = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        // This will prompt the user to enable location if it's off
+        await Geolocation.requestAuthorization();
+        return true;
+      } catch (error) {
+        console.log("Location services check error:", error);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const requestLocationPermission = async () => {
+    if (Platform.OS === 'ios') {
+      return true; // iOS handles permissions differently
+    }
+    
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: "PasherDokan Location Permission",
+          message: "PasherDokan needs access to your location to find shops near you.",
+          buttonNeutral: "Ask Me Later",
+          buttonNegative: "Cancel",
+          buttonPositive: "OK"
+        }
+      );
+      
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        console.log("Location permission granted");
+        return true;
+      } else {
+        console.log("Location permission denied");
+        return false;
+      }
+    } catch (err) {
+      console.error("Permission request error:", err);
+      return false;
+    }
+  };
+  
+  // New function to get location with improved handling
+    const getLocation = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) {
+      setLoading(false);
+      setError("Location permission denied");
+      Alert.alert(
+        'Permission Denied', 
+        'Location permission is required to find shops near you. Please enable it in app settings.',
+        [{ text: 'OK', onPress: () => console.log('OK Pressed') }]
+      );
+      
+      // Use default location with mock shops so the app is still usable
+      const defaultLat = 23.8103;  // Default to Dhaka, Bangladesh
+      const defaultLng = 90.4125;
+      setLocation({ latitude: defaultLat, longitude: defaultLng });
+      const mockShops = generateMockShops(defaultLat, defaultLng);
+      setShops(mockShops);
+      return;
+    }
+    
+    // Check if location services are enabled
+    const locationServicesEnabled = await checkLocationServices();
+    if (!locationServicesEnabled) {
+      setLoading(false);
+      setError("Location services are disabled");
+      Alert.alert(
+        'Location Services Disabled',
+        'Please enable location services in your device settings.',
+        [{ text: 'OK' }]
+      );
+      
+      // Use default location with mock shops so the app is still usable
+      const defaultLat = 23.8103;
+      const defaultLng = 90.4125;
+      setLocation({ latitude: defaultLat, longitude: defaultLng });
+      const mockShops = generateMockShops(defaultLat, defaultLng);
+      setShops(mockShops);
+      return;
+    }
+    
+    console.log("Getting current location...");
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`Location obtained: ${latitude}, ${longitude}`);
+        setLocation({ latitude, longitude });
+        fetchNearbyShops(latitude, longitude);
+      },
+      (error) => {
+        console.error("Geolocation error code:", error.code);
+        console.error("Geolocation error message:", error.message);
+        setLoading(false);
+        
+        // More helpful error messages based on error code
+        if (error.code === 3) { // TIMEOUT
+          setError(`Location timed out. GPS signal may be weak.`);
+          Alert.alert(
+            'Location Error',
+            'GPS signal is weak. Try going outside or near a window for better GPS signal.',
+            [{ text: 'OK' }]
+          );
+        } else if (error.code === 1) { // PERMISSION_DENIED
+          setError(`Location permission denied`);
+          Alert.alert(
+            'Permission Denied', 
+            'Location permission is required. Please enable it in app settings.',
+            [{ text: 'OK' }]
+          );
+        } else if (error.code === 2) { // POSITION_UNAVAILABLE
+          setError(`Location unavailable. GPS may be off.`);
+          Alert.alert(
+            'Location Unavailable', 
+            'Your location could not be determined. Make sure GPS is enabled.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          setError(`Location error: ${error.message}`);
+          Alert.alert('Error', 'Unable to fetch location. Please ensure location services are enabled.');
+        }
+        
+        // Use default location with mock shops so the app is still usable
+        const defaultLat = 23.8103;  // Default to Dhaka, Bangladesh
+        const defaultLng = 90.4125;
+        setLocation({ latitude: defaultLat, longitude: defaultLng });
+        const mockShops = generateMockShops(defaultLat, defaultLng);
+        setShops(mockShops);
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 30000,  // Increased timeout to 30 seconds
+        maximumAge: 10000 
+      }
+      );
+  }, [fetchNearbyShops]);
+  
+  // Function to retry getting location
+  const retryLocation = () => {
+    getLocation();
+  };
+  
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("Getting current location...");
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log(`Location obtained: ${latitude}, ${longitude}`);
-          setLocation({ latitude, longitude });
-          fetchNearbyShops(latitude, longitude);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          setLoading(false);
-          setError(`Location error: ${error.message}`);
-          Alert.alert('Error', 'Unable to fetch location. Please enable location services.');
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
+      getLocation();
     }
-  }, [isAuthenticated, fetchNearbyShops]); 
+  }, [isAuthenticated, getLocation]);
   
   useEffect(() => {
     if (viewMode === 'map' && !mapLoaded) {
@@ -401,10 +535,16 @@ const CustomerDashboard: React.FC = () => {
           <Text style={styles.locationText}>Fetching location...</Text>
         )}
 
-        {/* Error display */}
+        {/* Error display with retry button */}
         {error && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={retryLocation}
+            >
+              <Text style={styles.retryButtonText}>Retry Location</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -564,6 +704,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#34495e',
     fontWeight: '500',
+    textAlign: 'center',
   },
   errorContainer: {
     marginHorizontal: 20,
@@ -571,10 +712,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffebee',
     borderRadius: 8,
     marginBottom: 5,
+    alignItems: 'center',
   },
   errorText: {
     color: '#c62828',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  retryButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '500',
+    fontSize: 14,
   },
   debugContainer: {
     marginHorizontal: 20,
