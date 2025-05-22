@@ -20,7 +20,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to find nearby shops."
-      }
+      },
+      "bundleIdentifier": "com.ju4700.pasherdokan"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,7 +33,9 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ],
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.ju4700.pasherdokan",
+      "intentFilters": []
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -40,6 +43,12 @@
     "scheme": "pasherdokan",
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "df060a66-0e29-46ea-a94d-c35f479d95b4"
+      }
+    }
   }
 }

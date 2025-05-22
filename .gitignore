@@ -3,6 +3,8 @@
 pasherdokanApp/.env
 pasherdokan-backend/.env
 
+pasherdokan-backend/dist
+
 # Node modules
 node_modules/
 pasherdokanApp/node_modules/

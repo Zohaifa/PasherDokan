@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Platform,
   Animated,
+  TextInput,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,10 +41,13 @@ const InventoryScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [newPrice, setNewPrice] = useState<string>('');
 
   // Animation values
   const fadeAnim = useState(new Animated.Value(0))[0];
   const translateY = useState(new Animated.Value(20))[0];
+  const inputRef = useRef<TextInput>(null);
 
   // Run entrance animation
   useEffect(() => {
@@ -70,20 +74,21 @@ const InventoryScreen = () => {
       setRefreshing(false);
       return;
     }
-
+  
     try {
       if (!showRefresh) setLoading(true);
       if (showRefresh) setRefreshing(true);
       setError(null);
-
+  
       const config = {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       };
-
-      const response = await api.get(`/products?shop=${shopId}`, config);
+  
+      // Use the correct endpoint matching your backend route
+      const response = await api.get(`/products/shop/${shopId}`, config);
       setProducts(response.data);
     } catch (err: any) {
       console.error('Error fetching products:', err.response?.data || err.message);
@@ -103,6 +108,62 @@ const InventoryScreen = () => {
     }
   }, [shopId, fetchProducts]);
 
+  // Start price editing
+  const startPriceEdit = useCallback((productId: string, currentPrice: number) => {
+    setEditingProduct(productId);
+    setNewPrice(currentPrice.toString());
+    
+    // Focus the input after a short delay to ensure it's rendered
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
+  }, []);
+
+  // Save price update
+  const savePrice = useCallback(async (productId: string) => {
+    try {
+      if (!newPrice || isNaN(parseFloat(newPrice)) || parseFloat(newPrice) <= 0) {
+        Alert.alert('Invalid Price', 'Please enter a valid price');
+        return;
+      }
+
+      // Convert to number before sending to API
+      const priceValue = parseFloat(newPrice);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      };
+
+      await api.patch(`/products/${productId}`, { price: priceValue }, config);
+      
+      // Update local state
+      setProducts(currentProducts => 
+        currentProducts.map(product => 
+          product._id === productId ? { ...product, price: priceValue } : product
+        )
+      );
+
+      // Exit edit mode
+      setEditingProduct(null);
+      setNewPrice('');
+      
+    } catch (err: any) {
+      console.error('Failed to update price:', err.response?.data || err.message);
+      Alert.alert('Update Failed', 'Could not update the product price. Please try again.');
+    }
+  }, [newPrice, token]);
+
+  // Cancel price editing
+  const cancelPriceEdit = useCallback(() => {
+    setEditingProduct(null);
+    setNewPrice('');
+  }, []);
+
   const onRefresh = () => {
     fetchProducts(true);
   };
@@ -115,6 +176,14 @@ const InventoryScreen = () => {
       </View>
     );
   }
+
+  // Format kg with proper decimal places
+  const formatWeight = (weight: number) => {
+    if (weight % 1 === 0) {
+      return `${weight}kg`;
+    }
+    return `${weight.toFixed(2)}kg`;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -192,7 +261,7 @@ const InventoryScreen = () => {
           {shopId ? (
             <View style={styles.shopInfoBox}>
               <View style={styles.shopIconContainer}>
-                <Ionicons name="cube" size={24} color="#4a69bd" />
+                <Ionicons name="scale" size={24} color="#4a69bd" />
               </View>
               <View style={styles.shopInfoContent}>
                 <View style={styles.shopMetaRow}>
@@ -204,6 +273,10 @@ const InventoryScreen = () => {
                   <Text style={styles.infoValue}>
                     {(Array.isArray(shopId) ? shopId[0] : shopId)?.substring(0, 8)}...
                   </Text>
+                </View>
+                <View style={styles.infoNote}>
+                  <Ionicons name="information-circle" size={14} color="#64748b" />
+                  <Text style={styles.infoText}>Tap on price to edit</Text>
                 </View>
               </View>
             </View>
@@ -272,6 +345,12 @@ const InventoryScreen = () => {
               </View>
             </View>
             
+            <View style={styles.productColumnHeaders}>
+              <Text style={[styles.columnHeader, { flex: 1 }]}>Product</Text>
+              <Text style={[styles.columnHeader, { width: 80, textAlign: 'center' }]}>Price/kg</Text>
+              <Text style={[styles.columnHeader, { width: 70, textAlign: 'center' }]}>Stock</Text>
+            </View>
+            
             <View style={styles.productList}>
               {products.map((product) => (
                 <TouchableOpacity 
@@ -284,24 +363,70 @@ const InventoryScreen = () => {
                   </View>
                   <View style={styles.productInfo}>
                     <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                    <View style={styles.productMeta}>
-                      <View style={styles.categoryTag}>
-                        <Text style={styles.categoryText}>{product.category}</Text>
-                      </View>
-                      <Text style={styles.productPrice}>৳{product.price}</Text>
+                    <View style={styles.categoryTag}>
+                      <Text style={styles.categoryText}>{product.category}</Text>
                     </View>
                   </View>
+                  
+                  {editingProduct === product._id ? (
+                    <View style={styles.priceEditContainer}>
+                      <Text style={styles.currencySymbol}>৳</Text>
+                      <TextInput
+                        ref={inputRef}
+                        style={styles.priceEditInput}
+                        value={newPrice}
+                        onChangeText={setNewPrice}
+                        keyboardType="decimal-pad"
+                        selectTextOnFocus
+                        autoFocus
+                        onBlur={cancelPriceEdit}
+                      />
+                      <View style={styles.priceActionButtons}>
+                        <TouchableOpacity 
+                          style={styles.priceActionButton}
+                          onPress={() => savePrice(product._id)}
+                        >
+                          <Ionicons name="checkmark" size={18} color="#27ae60" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.priceActionButton}
+                          onPress={cancelPriceEdit}
+                        >
+                          <Ionicons name="close" size={18} color="#e74c3c" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.priceContainer}
+                      onPress={() => startPriceEdit(product._id, product.price)}
+                    >
+                      <Text style={styles.productPriceLabel}>৳{product.price}</Text>
+                      <Ionicons name="create-outline" size={14} color="#64748b" style={styles.editIcon} />
+                    </TouchableOpacity>
+                  )}
+                  
                   <View style={styles.stockContainer}>
                     <Text style={[
                       styles.stockValue,
                       product.stock > 10 ? styles.inStock : styles.lowStock
                     ]}>
-                      {product.stock}
+                      {formatWeight(product.stock)}
                     </Text>
-                    <Text style={styles.stockLabel}>in stock</Text>
                   </View>
                 </TouchableOpacity>
               ))}
+            </View>
+            
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#27ae60' }]} />
+                <Text style={styles.legendText}>Well stocked ({'>'}10kg)</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#e67e22' }]} />
+                <Text style={styles.legendText}>Low stock (≤10kg)</Text>
+              </View>
             </View>
           </Animated.View>
         ) : shopId ? (
@@ -480,6 +605,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginLeft: 4,
+  },
   infoLabel: {
     fontSize: 14,
     color: '#64748b',
@@ -560,8 +695,21 @@ const styles = StyleSheet.create({
     color: '#4a69bd',
     marginLeft: 6,
   },
+  productColumnHeaders: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  columnHeader: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
   productList: {
-    marginTop: 8,
+    marginTop: 4,
   },
   productCard: {
     flexDirection: 'row',
@@ -570,54 +718,63 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e6e9f0',
-    padding: 14,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 10,
   },
   productIconContainer: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     backgroundColor: '#eef2ff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   productInfo: {
     flex: 1,
+    marginRight: 8,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#2c3e50',
     marginBottom: 4,
-  },
-  productMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   categoryTag: {
     backgroundColor: '#f1f5f9',
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 4,
+    alignSelf: 'flex-start',
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748b',
   },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: '600',
+  priceContainer: {
+    width: 80,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  productPriceLabel: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#4a69bd',
+    marginBottom: 2,
   },
   stockContainer: {
+    width: 70,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
   stockValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
   },
   inStock: {
@@ -626,8 +783,27 @@ const styles = StyleSheet.create({
   lowStock: {
     color: '#e67e22',
   },
-  stockLabel: {
-    fontSize: 10,
+  legend: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 12,
     color: '#64748b',
   },
   emptyStateContainer: {
@@ -710,6 +886,46 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: '500',
     marginLeft: 6,
+  },
+  editIcon: {
+    marginTop: 2,
+  },
+  priceEditContainer: {
+    width: 80,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4a69bd',
+    padding: 6,
+    marginHorizontal: 4,
+  },
+  currencySymbol: {
+    position: 'absolute',
+    left: 8,
+    top: 8,
+    fontSize: 14,
+    color: '#4a69bd',
+    fontWeight: '600',
+  },
+  priceEditInput: {
+    height: 30,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2c3e50',
+    paddingLeft: 16,
+    paddingRight: 50,
+  },
+  priceActionButtons: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    flexDirection: 'row',
+  },
+  priceActionButton: {
+    width: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
